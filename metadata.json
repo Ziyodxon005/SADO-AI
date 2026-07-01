@@ -1,0 +1,6 @@
+{
+  "name": "O'zbek Ovoz AI",
+  "description": "Eng ilg'or o'zbek tili matn-to-ovoz (TTS) va imlo tahrirlash platformasi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

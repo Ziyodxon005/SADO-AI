@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+/* ─── Base Reset ─────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+body {
+  font-family: 'Montserrat', 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #040a16;
+}
+
+#root {
+  min-height: 100dvh;
+  overflow-x: hidden;
+  background: #040a16;
+}
+
+/* ─── Tap highlight fix for mobile ──────────────────────────────── */
+button, a {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ─── Keyframe Animations ────────────────────────────────────────── */
+@keyframes slideInRight {
+  from { transform: translateX(110%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes toastProgress {
+  from { width: 100%; }
+  to   { width: 0%;   }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.93); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes spinAnim {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes shimmerCTA {
+  0%       { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(200%); }
+}
+
+/* ─── Utility Classes ───────────────────────────────────────────── */
+.fadeUp   { animation: fadeUp   0.3s ease-out both; }
+.scaleIn  { animation: scaleIn  0.22s cubic-bezier(0.34,1.56,0.64,1) both; }
+.spin     { animation: spinAnim 1s linear infinite; }
+.pulse-dot{ animation: pulseDot 2s ease-in-out infinite; }
+
+/* ─── Scrollbar (webkit) ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2e4060; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #00cbc2; }
+
+/* ─── Range Slider ───────────────────────────────────────────────── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  width: 100%;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 6px;
+  background: #20304a;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #00cbc2;
+  margin-top: -8px;
+  box-shadow: 0 0 14px rgba(0, 203, 194, 0.5);
+  border: 2px solid #0e1520;
+  transition: box-shadow 0.15s;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 22px rgba(0, 203, 194, 0.7);
+}
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 6px;
+  background: #20304a;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #00cbc2;
+  border: 2px solid #0e1520;
+  cursor: pointer;
+}
+
+/* ─── Button Hover Effects ───────────────────────────────────────── */
+.btn-teal {
+  background: linear-gradient(135deg, #009d96, #00cbc2 60%, #00e0d8);
+  color: #031a19;
+  font-weight: 900;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 8px 28px rgba(0, 203, 194, 0.35);
+}
+.btn-teal:hover {
+  box-shadow: 0 12px 36px rgba(0, 203, 194, 0.5);
+  transform: translateY(-2px);
+}
+.btn-teal:active {
+  transform: scale(0.98);
+  box-shadow: 0 4px 16px rgba(0, 203, 194, 0.3);
+}
+.btn-teal:disabled {
+  background: #20304a !important;
+  color: #7a90b0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  cursor: not-allowed;
+}
+
+.voice-card  { cursor: pointer; transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1); border: none; }
+.voice-card:hover  { transform: translateY(-4px); }
+.voice-card:active { transform: scale(0.96); }
+
+.dialect-chip  { cursor: pointer; transition: all 0.15s; border: none; }
+.dialect-chip:hover  { transform: translateY(-1px); }
+.dialect-chip:active { transform: scale(0.97); }
+
+.emo-btn  { cursor: pointer; transition: all 0.15s; }
+.emo-btn:hover  { transform: translateY(-1px); }
+.emo-btn:active { transform: scale(0.96); }
+
+.ai-float-btn { transition: all 0.18s; }
+.ai-float-btn:hover  { transform: translateY(-1px); }
+.ai-float-btn:active { transform: scale(0.96); }
