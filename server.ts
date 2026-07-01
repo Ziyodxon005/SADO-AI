@@ -141,7 +141,7 @@ FONETIK/MORFOLOGIK QOIDALAR:
 - sonlar ham ba'zan qisqaradi: "o'n ikki","12" -> "o'nakki", "to'rt","4" -> "to'r"
 - so'z oxiridagi "-di" ko'pincha "-votti" ga o'tadi tez nutqda 
 - so'z oxirida "-daman", "yapman" ko'pincha "vomman" ga o'tada tez nuqtda, "bormoqdaman" -> "borvomman"
- 
+- so'z "yapman" bo'lsa "vomman" ga o'zgartir. "qilyapman" -> "qivomman", "ishlayapti" -> "ishlavomman"
 LEKSIKA VA IBORALAR:
 - oka, uka — murojaat so'zlari, deyarli har gapda
 - "voy" — hayrat, e'tiroz
