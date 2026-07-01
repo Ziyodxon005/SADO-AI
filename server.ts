@@ -361,13 +361,14 @@ function getPromptForStyleAndDialect(text: string, style: string, dialect: strin
   return `${styleInstruction} ${dialectInstruction}: ${text}`;
 }
 
-async function startServer() {
+// ─── Express App Factory ──────────────────────────────────────────────────────
+export function createApp() {
   const app = express();
 
   app.use(express.json({ limit: "10mb" }));
 
   // ─── API Route: Speech Synthesis ─────────────────────────────────────────
-  app.post("/api/tts", async (req, res) => {
+  app.post("/api/tts", async (req: any, res: any) => {
     try {
       const { text, voiceName, style, speed, dialect } = req.body;
 
@@ -526,6 +527,14 @@ async function startServer() {
   });
 
   // ─── Serve static assets or mount Vite middleware ─────────────────────────
+  // (faqat lokal dev uchun — Vercel da bu kerak emas)
+  return app;
+}
+
+// Lokal ishga tushirish — Vite middleware + listen
+async function startServer() {
+  const app = createApp();
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -535,7 +544,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get("*", (req, res) => {
+    app.get("*", (req: any, res: any) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
@@ -546,4 +555,7 @@ async function startServer() {
   });
 }
 
-startServer();
+// Lokal ishga tushirish (Vercel da bu chaqirilmaydi)
+if (process.env.VERCEL !== "1") {
+  startServer();
+}
