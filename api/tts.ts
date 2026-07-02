@@ -1,7 +1,10 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { GoogleGenAI } from "@google/genai";
 
-// ─── Key Pool ─────────────────────────────────────────────────────────────────
+// ─── Multi-Key Pool ───────────────────────────────────────────────────────────
+// GEMINI_API_KEY_1 ... GEMINI_API_KEY_8 kalitlarini qo'llab-quvvatlaydi.
+// Eski GEMINI_API_KEY ham ishlaydi (backward compatibility).
+
 const rawKeys = [
   process.env.GEMINI_API_KEY_1,
   process.env.GEMINI_API_KEY_2,
@@ -11,41 +14,79 @@ const rawKeys = [
   process.env.GEMINI_API_KEY_6,
   process.env.GEMINI_API_KEY_7,
   process.env.GEMINI_API_KEY_8,
-  process.env.GEMINI_API_KEY,
+  process.env.GEMINI_API_KEY, // eski format qo'llab-quvvatlash
 ].filter(Boolean) as string[];
 
+// Dublikatlarni olib tashlash
 const API_KEYS = [...new Set(rawKeys)];
 
-const AI_CLIENTS: (GoogleGenAI | null)[] = API_KEYS.map((key) => {
+// Har bir kalit uchun GoogleGenAI client yaratish
+const AI_CLIENTS: (GoogleGenAI | null)[] = API_KEYS.map((key, idx) => {
   try {
-    return new GoogleGenAI({ apiKey: key });
-  } catch { return null; }
+    const client = new GoogleGenAI({
+      apiKey: key,
+      httpOptions: { headers: { "User-Agent": "aistudio-build" } },
+    });
+    console.log(`[KeyPool] Kalit ${idx + 1} muvaffaqiyatli ulandi.`);
+    return client;
+  } catch (error) {
+    console.error(`[KeyPool] Kalit ${idx + 1} ulanishda xatolik:`, error);
+    return null;
+  }
 });
 
+// Limitga yetgan kalitlarni kuzatish (1 soatdan keyin avtomatik qayta faollanadi)
 const exhaustedKeys = new Set<number>();
 
 function markKeyExhausted(index: number): void {
   exhaustedKeys.add(index);
-  setTimeout(() => exhaustedKeys.delete(index), 60 * 60 * 1000);
+  console.warn(
+    `[KeyPool] Kalit ${index + 1} limitiga yetdi. 1 soatdan keyin qayta faollanadi.`
+  );
+  // 1 soatdan keyin avtomatik qayta faollashtirish
+  setTimeout(() => {
+    exhaustedKeys.delete(index);
+    console.log(`[KeyPool] Kalit ${index + 1} qayta faollashtirildi.`);
+  }, 60 * 60 * 1000);
 }
 
+// Xatolik quota bilan bog'liqmi tekshirish
 function isQuotaError(error: any): boolean {
   const msg = String(error?.message || error || "").toLowerCase();
-  return msg.includes("quota") || msg.includes("resource_exhausted") ||
-    msg.includes("rate limit") || msg.includes("too many requests") ||
-    msg.includes("429") || error?.status === 429 || error?.code === 429;
+  return (
+    msg.includes("quota") ||
+    msg.includes("resource_exhausted") ||
+    msg.includes("rate limit") ||
+    msg.includes("too many requests") ||
+    msg.includes("429") ||
+    error?.status === 429 ||
+    error?.code === 429
+  );
 }
 
-async function callWithKeyRotation<T>(fn: (client: GoogleGenAI) => Promise<T>): Promise<T> {
+// Bir kalit limitga yetsa avtomatik keyingisiga o'tadi
+async function callWithKeyRotation<T>(
+  fn: (client: GoogleGenAI) => Promise<T>
+): Promise<T> {
   for (let i = 0; i < AI_CLIENTS.length; i++) {
     if (exhaustedKeys.has(i) || !AI_CLIENTS[i]) continue;
+
     try {
       return await fn(AI_CLIENTS[i]!);
     } catch (error: any) {
-      if (isQuotaError(error)) { markKeyExhausted(i); continue; }
+      if (isQuotaError(error)) {
+        markKeyExhausted(i);
+        const remaining = AI_CLIENTS.filter((c, idx) => c && !exhaustedKeys.has(idx)).length;
+        if (remaining > 0) {
+          console.warn(`[KeyPool] Kalit ${i + 1} dan keyingisiga o'tilmoqda... (${remaining} ta qoldi)`);
+        }
+        continue;
+      }
       throw error;
     }
   }
+
+  // Barcha kalitlar limitga yetgan
   throw new Error("ALL_KEYS_EXHAUSTED");
 }
 
@@ -55,11 +96,19 @@ function hasAvailableClients(): boolean {
 
 // ─── Voice Map ────────────────────────────────────────────────────────────────
 const VOICE_MAP: Record<string, string> = {
-  Shaxnoza: "Zephyr", Nigora: "Kore", Umar: "Puck", Mustafo: "Charon", Ali: "Fenrir",
+  Shaxnoza: "Zephyr",
+  Nigora: "Kore",
+  Umar: "Puck",
+  Mustafo: "Charon",
+  Ali: "Fenrir",
 };
 
-// ─── Dialect Prompts ──────────────────────────────────────────────────────────
-async function translateToDialect(text: string, dialect: string, aiClient: GoogleGenAI): Promise<string> {
+// ─── Dialect Translation ──────────────────────────────────────────────────────
+async function translateToDialect(
+  text: string,
+  dialect: string,
+  aiClient: GoogleGenAI
+): Promise<string> {
   if (!dialect || dialect === "standard") return text;
 
   const dialectPrompts: Record<string, string> = {
@@ -216,36 +265,88 @@ Matn samimiy, muloyim, lekin vodiyga xos tez va ohangdor ritmda bo'lsin.`,
       "Matnni Navoiy viloyati shevasida yozing. Markaziy-g'arbiy hududlarga xos talaffuz, Buxoro va Samarqand shevalari ta'siri hamda cho'l hududlariga xos xalqona ohangni saqlang. Nutq ravon, tabiiy va samimiy bo'lsin."
   };
 
-  const prompt = dialectPrompts[dialect];
-  if (!prompt) return text;
+  const instruction = dialectPrompts[dialect.toLowerCase()];
+  if (!instruction) return text;
 
-  try {
-    const response = await aiClient.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `${prompt}\n\nQuyidagi matnni shu shevada qayta yozing, FAQAT sheva matnini qaytaring:\n${text}`,
-      config: { temperature: 0.3 },
-    });
-    const result = response.text?.trim();
-    if (result && result.length > 5) return result;
-    return text;
-  } catch {
-    return text;
+  const promptText =
+    `Siz professional o'zbek tili tarjimonisiz. Quyidagi o'zbekcha matnni ${instruction} o'girib bering.\n` +
+    `ASL MATN: "${text}"\n` +
+    `KO'RSATMA: Asl matnning ma'nosini 100% saqlang, hech qanday qo'shimcha so'z, tushuntirish, izoh yozmang! Faqat va faqat shevadagi tarjimani qaytaring.`;
+
+  const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite"];
+
+  for (const modelName of modelsToTry) {
+    try {
+      console.log(`Dialektga o'girish urinishi (${dialect}) - Model: ${modelName}`);
+      const response = await aiClient.models.generateContent({
+        model: modelName,
+        contents: promptText,
+        config: { temperature: 0.2 },
+      });
+      const translated = response.text?.trim();
+      if (translated && translated.length > 0) {
+        let cleaned = translated;
+        if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+          cleaned = cleaned.substring(1, cleaned.length - 1);
+        }
+        return cleaned;
+      }
+    } catch (err: any) {
+      // Quota xatoligi bo'lsa, key rotation uchun yuqoriga uzatamiz
+      if (isQuotaError(err)) {
+        throw err;
+      }
+      console.warn(`Translation failed for model ${modelName}:`, err);
+    }
   }
+
+  console.warn(`[Translate] OGOHLANTIRISH: "${dialect}" shevaga tarjima barcha modellarda muvaffaqiyatsiz bo'ldi. Standart matn qaytarilmoqda.`);
+  return text; // fallback to original text
 }
 
 // ─── Style + Dialect Prompt Builder ───────────────────────────────────────────
-function getPromptForStyleAndDialect(style: string, dialect: string, text: string): string {
-  const styleMap: Record<string, string> = {
-    natural: "Tabiiy, kundalik suhbat ohangida o'qi.",
-    news: "Professional axborot boshlovchisi uslubida, rasmiy va aniq o'qi.",
-    story: "Ertak aytuvchi uslubida, ifodali va hayajonli o'qi.",
-    emotional: "Hissiyotli, dramatik va ta'sirli ohangda o'qi.",
-    funny: "Hazilkash, quvnoq va kulgili ohangda o'qi.",
-  };
-  const styleInstruction = styleMap[style] || styleMap.natural;
-  const dialectInstruction = dialect && dialect !== "standard"
-    ? `Matnni ${dialect} shevasida talaffuz qil`
-    : "Matnni adabiy o'zbek tilida o'qi";
+function getPromptForStyleAndDialect(text: string, style: string, dialect: string): string {
+  let styleInstruction = "Say naturally";
+  const normStyle = style.toLowerCase();
+
+  if (normStyle.includes("cheerful") || normStyle.includes("xushchaqchaq")) {
+    styleInstruction = "Say cheerfully, happily, and enthusiastically with bright emotion";
+  } else if (normStyle.includes("calm") || normStyle.includes("sokin")) {
+    styleInstruction = "Say calmly, softly, gently, and warmly with calm pacing";
+  } else if (normStyle.includes("serious") || normStyle.includes("rasmiy") || normStyle.includes("jiddiy")) {
+    styleInstruction = "Say seriously, formally, professionally, and clearly";
+  } else if (normStyle.includes("dramatic") || normStyle.includes("hayajonli") || normStyle.includes("dramatik")) {
+    styleInstruction = "Say excitingly, with high drama, passion, and intense emotion";
+  }
+
+  let dialectInstruction = "in standard Uzbek language";
+  const normDialect = dialect.toLowerCase();
+  if (normDialect === "toshkent") {
+    dialectInstruction = "in Tashkent dialect of Uzbek language (using Tashkent accent, votti-botti tone, and melodic city cadence)";
+  } else if (normDialect === "andijon") {
+    dialectInstruction = "in Andijon dialect of Uzbek language (highly polite, melodic, warm Fergana valley tone and accent)";
+  } else if (normDialect === "fargona") {
+    dialectInstruction = "in Farg'ona dialect of Uzbek language (extremely soft, polite, classic Fergana valley tone and accent)";
+  } else if (normDialect === "namangan") {
+    dialectInstruction = "in Namangan dialect of Uzbek language (with characteristic Namangan pitch shifts and melodic valley accent)";
+  } else if (normDialect === "samarqand") {
+    dialectInstruction = "in Samarqand dialect of Uzbek language (with Samarqand city cadence, incorporating beautiful Tajik-influenced vowels)";
+  } else if (normDialect === "buxoro") {
+    dialectInstruction = "in Buxoro dialect of Uzbek language (with Bukhara accent, soft pacing, and elegant classical intonation)";
+  } else if (normDialect === "xorazm") {
+    dialectInstruction = "in Xorazm dialect of Uzbek language (with distinct Khorezmian Oghuz accent, using native g-sounds and o-vowels)";
+  } else if (normDialect === "qashqadaryo") {
+    dialectInstruction = "in Qashqadaryo dialect of Uzbek language (with direct, robust, and friendly southern Kipchak accent)";
+  } else if (normDialect === "surxondaryo") {
+    dialectInstruction = "in Surxondaryo dialect of Uzbek language (with Southern Surkhandarya robust, deep, melodic rural accent)";
+  } else if (normDialect === "jizzax") {
+    dialectInstruction = "in Jizzax dialect of Uzbek language (with Jizzakh regional accent and cadence)";
+  } else if (normDialect === "sirdaryo") {
+    dialectInstruction = "in Sirdaryo dialect of Uzbek language (with friendly, simple, conversational Syrdarya accent)";
+  } else if (normDialect === "navoiy") {
+    dialectInstruction = "in Navoiy dialect of Uzbek language (with Navoiy regional accent)";
+  }
+
   return `${styleInstruction} ${dialectInstruction}: ${text}`;
 }
 
@@ -264,59 +365,99 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!text || typeof text !== "string") {
       return res.status(400).json({ error: "Matn kiritish majburiy." });
     }
+
     if (text.length > 1200) {
       return res.status(400).json({ error: "Matn uzunligi 1200 belgidan oshmasligi kerak." });
     }
+
     if (!hasAvailableClients()) {
-      return res.status(503).json({ error: "Tizim hozirda band. Iltimos, biroz kutib qayta urinib ko'ring." });
+      return res.status(503).json({
+        error: "Tizim hozirda band. Yuklanma keragidan ortiq — iltimos, biroz kutib qayta urinib ko'ring.",
+      });
     }
 
     const resolvedVoice = VOICE_MAP[voiceName] || "Zephyr";
-    const resolvedSpeed = typeof speed === "number" ? Math.max(0.5, Math.min(2.0, speed)) : 1.0;
 
-    // Dialektga tarjima
-    let processedText = text;
-    let synthesizedText: string | null = null;
-    if (dialect && dialect !== "standard") {
-      const translatedText = await callWithKeyRotation(async (client) => {
-        return translateToDialect(text, dialect, client);
-      });
-      if (translatedText !== text) {
-        processedText = translatedText;
-        synthesizedText = translatedText;
+    console.log(
+      `TTS so'rovi qabul qilindi: Voice: ${voiceName} (${resolvedVoice}), Style: ${style}, Dialect: ${dialect || "standard"}`
+    );
+
+    // Key rotation bilan barcha API chaqiruvlarni bajarish
+    const result = await callWithKeyRotation(async (client) => {
+      // Dialekt tarjimasi
+      let textToSynthesize = text;
+      let translatedText: string | null = null;
+
+      if (dialect && dialect !== "standard") {
+        console.log(`Dialekt bo'yicha tarjima qilinmoqda: ${dialect}`);
+        textToSynthesize = await translateToDialect(text, dialect, client);
+        translatedText = textToSynthesize;
+        if (translatedText === text) {
+          console.warn(`[TTS] OGOHLANTIRISH: Tarjima o'zgarmadi! Sheva: ${dialect}. Model tarjima qilmagan bo'lishi mumkin.`);
+        } else {
+          console.log(`[TTS] Dialektga muvaffaqiyatli o'girildi: ${translatedText}`);
+        }
       }
-    }
 
-    const prompt = getPromptForStyleAndDialect(style, dialect, processedText);
+      const promptWithEmotion = getPromptForStyleAndDialect(
+        textToSynthesize,
+        style || "natural",
+        dialect || "standard"
+      );
 
-    const audioResult = await callWithKeyRotation(async (client) => {
       const response = await client.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: prompt }] }],
+        model: "gemini-3.1-flash-tts-preview",
+        contents: [{ parts: [{ text: promptWithEmotion }] }],
         config: {
           responseModalities: ["AUDIO"],
           speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: resolvedVoice } },
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: resolvedVoice },
+            },
           },
-        } as any,
+        },
       });
 
-      const data = response.candidates?.[0]?.content?.parts?.[0]?.inlineData;
-      if (!data?.data) throw new Error("Audio ma'lumot qaytarilmadi.");
-      return data.data;
+      return { response, textToSynthesize, translatedText };
     });
+
+    const audioPart = result.response.candidates?.[0]?.content?.parts?.[0];
+    const base64Audio = (audioPart as any)?.inlineData?.data;
+
+    if (!base64Audio) {
+      console.error("TTS API audioga oid ma'lumot qaytarmadi:", JSON.stringify(result.response));
+      return res.status(500).json({
+        error: "Ovoz sintez qilishda xatolik yuz berdi. API audio ma'lumot qaytarmadi.",
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      audioBase64: audioResult,
-      mimeType: "audio/L16;rate=24000",
-      synthesizedText,
+      audioBase64: base64Audio,
+      metadata: {
+        text,
+        synthesizedText: result.textToSynthesize,
+        translatedText: result.translatedText,
+        dialect: dialect || "standard",
+        voiceName,
+        resolvedVoice,
+        style,
+        speed,
+        sampleRate: 24000,
+        channels: 1,
+        bitDepth: 16,
+      },
     });
   } catch (error: any) {
     if (error.message === "ALL_KEYS_EXHAUSTED") {
-      return res.status(503).json({ error: "Barcha limitlar sarflab bo'lindi. 1 soatdan keyin qayta urining." });
+      console.warn("[KeyPool] Barcha API kalitlar limitiga yetdi.");
+      return res.status(503).json({
+        error: "Uzr! bizda barcha limitlar sarflab bo'lindi. 24 soatdan keyin qayta urining.",
+      });
     }
     console.error("TTS API xatoligi:", error);
-    return res.status(500).json({ error: error.message || "Sintez jarayonida xatolik yuz berdi." });
+    return res.status(500).json({
+      error: error.message || "Sintez jarayonida ichki xatolik yuz berdi.",
+    });
   }
 }

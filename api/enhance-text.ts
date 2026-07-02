@@ -1,44 +1,102 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { GoogleGenAI } from "@google/genai";
 
-// ─── Key Pool (shared logic) ──────────────────────────────────────────────────
+// ─── Multi-Key Pool ───────────────────────────────────────────────────────────
+// GEMINI_API_KEY_1 ... GEMINI_API_KEY_8 kalitlarini qo'llab-quvvatlaydi.
+// Eski GEMINI_API_KEY ham ishlaydi (backward compatibility).
+
 const rawKeys = [
-  process.env.GEMINI_API_KEY_1, process.env.GEMINI_API_KEY_2,
-  process.env.GEMINI_API_KEY_3, process.env.GEMINI_API_KEY_4,
-  process.env.GEMINI_API_KEY_5, process.env.GEMINI_API_KEY_6,
-  process.env.GEMINI_API_KEY_7, process.env.GEMINI_API_KEY_8,
-  process.env.GEMINI_API_KEY,
+  process.env.GEMINI_API_KEY_1,
+  process.env.GEMINI_API_KEY_2,
+  process.env.GEMINI_API_KEY_3,
+  process.env.GEMINI_API_KEY_4,
+  process.env.GEMINI_API_KEY_5,
+  process.env.GEMINI_API_KEY_6,
+  process.env.GEMINI_API_KEY_7,
+  process.env.GEMINI_API_KEY_8,
+  process.env.GEMINI_API_KEY, // eski format qo'llab-quvvatlash
 ].filter(Boolean) as string[];
 
+// Dublikatlarni olib tashlash
 const API_KEYS = [...new Set(rawKeys)];
-const AI_CLIENTS: (GoogleGenAI | null)[] = API_KEYS.map((key) => {
-  try { return new GoogleGenAI({ apiKey: key }); } catch { return null; }
+
+// Har bir kalit uchun GoogleGenAI client yaratish
+const AI_CLIENTS: (GoogleGenAI | null)[] = API_KEYS.map((key, idx) => {
+  try {
+    const client = new GoogleGenAI({
+      apiKey: key,
+      httpOptions: { headers: { "User-Agent": "aistudio-build" } },
+    });
+    console.log(`[KeyPool] Kalit ${idx + 1} muvaffaqiyatli ulandi.`);
+    return client;
+  } catch (error) {
+    console.error(`[KeyPool] Kalit ${idx + 1} ulanishda xatolik:`, error);
+    return null;
+  }
 });
+
+// Limitga yetgan kalitlarni kuzatish (1 soatdan keyin avtomatik qayta faollanadi)
 const exhaustedKeys = new Set<number>();
 
-function markKeyExhausted(i: number) {
-  exhaustedKeys.add(i);
-  setTimeout(() => exhaustedKeys.delete(i), 60 * 60 * 1000);
+function markKeyExhausted(index: number): void {
+  exhaustedKeys.add(index);
+  console.warn(
+    `[KeyPool] Kalit ${index + 1} limitiga yetdi. 1 soatdan keyin qayta faollanadi.`
+  );
+  // 1 soatdan keyin avtomatik qayta faollashtirish
+  setTimeout(() => {
+    exhaustedKeys.delete(index);
+    console.log(`[KeyPool] Kalit ${index + 1} qayta faollashtirildi.`);
+  }, 60 * 60 * 1000);
 }
-function isQuotaError(e: any): boolean {
-  const m = String(e?.message || e || "").toLowerCase();
-  return m.includes("quota") || m.includes("resource_exhausted") ||
-    m.includes("rate limit") || m.includes("429") || e?.status === 429;
+
+// Xatolik quota bilan bog'liqmi tekshirish
+function isQuotaError(error: any): boolean {
+  const msg = String(error?.message || error || "").toLowerCase();
+  return (
+    msg.includes("quota") ||
+    msg.includes("resource_exhausted") ||
+    msg.includes("rate limit") ||
+    msg.includes("too many requests") ||
+    msg.includes("429") ||
+    error?.status === 429 ||
+    error?.code === 429
+  );
 }
-async function callWithKeyRotation<T>(fn: (c: GoogleGenAI) => Promise<T>): Promise<T> {
+
+// Bir kalit limitga yetsa avtomatik keyingisiga o'tadi
+async function callWithKeyRotation<T>(
+  fn: (client: GoogleGenAI) => Promise<T>
+): Promise<T> {
   for (let i = 0; i < AI_CLIENTS.length; i++) {
     if (exhaustedKeys.has(i) || !AI_CLIENTS[i]) continue;
-    try { return await fn(AI_CLIENTS[i]!); }
-    catch (e: any) { if (isQuotaError(e)) { markKeyExhausted(i); continue; } throw e; }
+
+    try {
+      return await fn(AI_CLIENTS[i]!);
+    } catch (error: any) {
+      if (isQuotaError(error)) {
+        markKeyExhausted(i);
+        const remaining = AI_CLIENTS.filter((c, idx) => c && !exhaustedKeys.has(idx)).length;
+        if (remaining > 0) {
+          console.warn(`[KeyPool] Kalit ${i + 1} dan keyingisiga o'tilmoqda... (${remaining} ta qoldi)`);
+        }
+        continue;
+      }
+      throw error;
+    }
   }
+
+  // Barcha kalitlar limitga yetgan
   throw new Error("ALL_KEYS_EXHAUSTED");
 }
+
 function hasAvailableClients(): boolean {
   return AI_CLIENTS.some((c, i) => c !== null && !exhaustedKeys.has(i));
 }
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -47,9 +105,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { text } = req.body;
-    if (!text || typeof text !== "string") return res.status(400).json({ error: "Matn kiritish majburiy." });
-    if (text.length > 1200) return res.status(400).json({ error: "Matn 1200 belgidan oshmasligi kerak." });
-    if (!hasAvailableClients()) return res.status(503).json({ error: "Tizim band. Biroz kutib qayta urining." });
+
+    if (!text || typeof text !== "string") {
+      return res.status(400).json({ error: "Matn kiritish majburiy." });
+    }
+
+    if (text.length > 1200) {
+      return res.status(400).json({ error: "Matn uzunligi 1200 belgidan oshmasligi kerak." });
+    }
+
+    if (!hasAvailableClients()) {
+      return res.status(503).json({
+        error: "Tizim hozirda band. Yuklanma keragidan ortiq — iltimos, biroz kutib qayta urinib ko'ring.",
+      });
+    }
+
+    console.log(`Imlo tahriri so'rovi: ${text.substring(0, 50)}...`);
 
     const systemInstruction =
       "Siz O'zbek tili bo'yicha mukammal imlo va grammatika mutaxassisiz. " +
@@ -61,7 +132,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const response = await client.models.generateContent({
         model: "gemini-2.5-flash",
         contents: text,
-        config: { systemInstruction, temperature: 0.1 },
+        config: {
+          systemInstruction,
+          temperature: 0.1,
+        },
       });
       return response.text?.trim() || text;
     });
@@ -69,9 +143,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ success: true, enhancedText });
   } catch (error: any) {
     if (error.message === "ALL_KEYS_EXHAUSTED") {
-      return res.status(503).json({ error: "Barcha limitlar sarflab bo'lindi. 1 soatdan keyin qayta urining." });
+      console.warn("[KeyPool] Barcha API kalitlar limitiga yetdi.");
+      return res.status(503).json({
+        error: "Uzr! bizda barcha limitlar sarflab bo'lindi. 24 soatdan keyin qayta urining.",
+      });
     }
-    console.error("Enhance xatoligi:", error);
-    return res.status(500).json({ error: error.message || "Matnni tahrirlashda xatolik yuz berdi." });
+    console.error("Enhance Text API xatoligi:", error);
+    return res.status(500).json({
+      error: error.message || "Matnni tahrirlashda ichki xatolik yuz berdi.",
+    });
   }
 }
