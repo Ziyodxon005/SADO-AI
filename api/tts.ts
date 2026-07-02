@@ -159,6 +159,7 @@ async function translateToDialect(
   hurmatga boy biroz qo'pol nutq uslubi bilan ajralib turadi.
   
   FONETIK/MORFOLOGIK QOIDALAR:
+  - "men", "sen" -> "man", "san" so'zlari doim "men", "sen" bo'ladi!, "Man" -> "men", "san" -> "sen" 
   - "-gan" → "-gan/-kan" saqlanadi, lekin unlilar cho'ziladi (vodiyga xos) ba'zan ma'noga ta'sir qilmasa "yappan" misol uchun "qilyapman" -> "qilyappan"
   -  "pman" → so'z agar "man" qo'shimchasidan olsin "p" harfi bo'lgan hamma so'zga "yappan" ishlatiladi. "Boryapman" -> "boryappan"
   -  "yappan" -> so'z "moqdaman" qo'shimchasi bo'lsa "yappan"ga o'zgartir. "Bormoqdaman" -> "Boryappan"
