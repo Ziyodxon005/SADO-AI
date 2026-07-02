@@ -126,155 +126,377 @@ async function translateToDialect(
   const dialectPrompts: Record<string, string> = {
     toshkent:
       `Matnni Toshkent shahri shevasida yozing.
- 
-UMUMIY XUSUSIYAT:
-Adabiy tilga eng yaqin sheva, lekin shahar xalqona ohangi va tez-tez
-qisqargan shakllar bilan ajralib turadi. "Iolash" (o'zlashgan lahja)
-guruhiga kiradi.
- 
-FONETIK/MORFOLOGIK QOIDALAR:
-- "aka, uka" → "oka"
-- "-yapti", "nadi" → "-yotti" yoki "-votti" (ba'zan): ketyapti → ketvotti, "boshlanadi" -> "boshlanvotti"
-- "men" → "man", "sen" → "san" (so'zlashuvda)
-- "bo'ldi" → "bo'ldi"
-- "-moqchi" ko'pincha qisqaradi: bormoqchiman → bormoqchiman (o'zgarmaydi, lekin tez talaffuz qilinadi)
-- sonlar ham ba'zan qisqaradi: "o'n ikki","12" -> "o'nakki", "to'rt","4" -> "to'r"
-- so'z oxiridagi "-di" ko'pincha "-votti" ga o'tadi tez nutqda 
-- so'z oxirida "-daman", "yapman" ko'pincha "vomman" ga o'tada tez nuqtda, "bormoqdaman" -> "borvomman"
-- so'z "yapman" bo'lsa "vomman" ga o'zgartir. "qilyapman" -> "qivomman", "ishlayapti" -> "ishlavomman"
-
-LEKSIKA VA IBORALAR:
-- oka, uka — murojaat so'zlari, deyarli har gapda
-- "voy" — hayrat, e'tiroz
-- "xo'p" — rozilik
-- "netay" — nima qilay
-- "shunaqa" — shunday
- 
-NAMUNALAR:
-Adabiy: "Sen nima qilyapsan hozir?"
-Toshkentcha: "San hozir nima qivossan?"
- 
-Adabiy: "U keldi va ketdi."
-Toshkentcha: "U keldi-yu ketvotti."
- 
-Adabiy: "Bugun ishga bormoqchiman."
-Toshkentcha: "Bugun ishga bormochiman, oka."
- 
-Nutq ravon, samimiy, zamonaviy va biroz shoshqaloq ohangda bo'lsin.
-Faqat 2-3 ta so'zga cheklanib qolmang, qoidalarni matn davomida izchil qo'llang.`,
+  
+  UMUMIY XUSUSIYAT:
+  Adabiy tilga eng yaqin sheva, lekin shahar xalqona ohangi va tez-tez
+  qisqargan shakllar bilan ajralib turadi. "Iolash" (o'zlashgan lahja)
+  guruhiga kiradi.
+  
+  FONETIK/MORFOLOGIK QOIDALAR:
+  - "aka, uka" → "oka"
+  - "-yapti", "nadi" → "-yotti" yoki "-votti" (ba'zan): ketyapti → ketvotti, "boshlanadi" -> "boshlanvotti"
+  - "men" → "man", "sen" → "san" (so'zlashuvda)
+  - "bo'ldi" → "bo'ldi"
+  - "-moqchi" ko'pincha qisqaradi: bormoqchiman → bormoqchiman (o'zgarmaydi, lekin tez talaffuz qilinadi)
+  - sonlar ham ba'zan qisqaradi: "o'n ikki","12" -> "o'nakki", "to'rt","4" -> "to'r"
+  - so'z oxiridagi "-di" ko'pincha "-votti" ga o'tadi tez nutqda, "hisoblanadi" -> "hisoblanvotti"
+  - so'z oxirida "-daman", "yapman" ko'pincha "vomman" ga o'tada tez nuqtda, "bormoqdaman" -> "borvomman"
+  - so'z oxirgi asosiy qo'shimchasidan oldin "a" harfi bo'lsa ko'pincha "i" harfiga o'zgaradi agar ma'no yo'qolmasa, "ishlayman" -> "ishliman", "bormayman" -> "bormiman"
+  
+  LEKSIKA VA IBORALAR:
+  - oka, uka — murojaat so'zlari, deyarli har gapda
+  - "voy" — hayrat, e'tiroz
+  - "xo'p" — rozilik
+  - "netay" — nima qilay
+  - "shunaqa" — shunday
+  
+  NAMUNALAR:
+  Adabiy: "Sen nima qilyapsan hozir?"
+  Toshkentcha: "San hozir nima qivossan?"
+  
+  Adabiy: "U keldi va ketdi."
+  Toshkentcha: "U keldi-yu ketvotti."
+  
+  Adabiy: "Bugun ishga bormoqchiman."
+  Toshkentcha: "Bugun ishga bormochiman, oka."
+  
+  Nutq ravon, samimiy, zamonaviy va biroz shoshqaloq ohangda bo'lsin.
+  Faqat 2-3 ta so'zga cheklanib qolmang, qoidalarni matn davomida izchil qo'llang.`,
 
     andijon:
       `Matnni Andijon viloyati shevasida yozing.
- 
-UMUMIY XUSUSIYAT:
-Farg'ona vodiysi qarluq lahjasiga kiradi. Nihoyatda muloyim, iliq va
-hurmatga boy biroz qo'pol nutq uslubi bilan ajralib turadi.
- 
-FONETIK/MORFOLOGIK QOIDALAR:
-- "-gan" → "-gan/-kan" saqlanadi, lekin unlilar cho'ziladi (vodiyga xos) ba'zan ma'noga ta'sir qilmasa "yappan" misol uchun "qilyapman" -> "qilyappan"
--  "pman" → so'z agar "man" qo'shimchasidan olsin "p" harfi bo'lgan hamma so'zga "yappan" ishlatiladi. "Boryapman" -> "boryappan"
--  "yappan" -> so'z "moqdaman" qo'shimchasi bo'lsa "yappan"ga o'zgartir. "Bormoqdaman" -> "Boryappan"
-- "yapti" -> so'z "moqda" yoki "nadi" qo'shimchasi bo'lsa "yapti" ga o'zgartir. "Bormoqda" -> "Boryapti", "qilinadi" -> "qilinyapti"
-- "yapti" -> so'z "nadi" bilan tugasa ham "yapti" ga o'zgartir. "hisoblanadi" -> "hisoblanyapti"
--  "miman" -> so'z agar "man" qo'shimchasi oldida "y" harfi bo'lgan hamma so'zga "miman" ishlatiladi. "bormayman" -> "bormiman", "qilmayman" -> "qimiman", "yurmayman" -> "yurmiman".
-- "sizmi" - agar "mi" qo'shimchasi oldidan "z" bo'lsa "z" harfi tushib qoladi "simi", "yuribsizmi" -> "yuribsimi", "qilyapsizmi" -> "qilyapsimi", "boryapsizmi" -> "boryapsimi"
-- "bo'pti" — "bo'ldi", "mayli"  o'rnida doim bo'ldi o'rnida "bo'pti" ishlatilsin
-- kichraytirish-erkalash qo'shimchasi "-jon" deyarli har so'zga qo'shiladi
-- "ha" o'rniga "ha-da" tasdiq sifatida ishlatiladi
-- "aka" o'rnida ba'zan "brat"
-- "juda" → "vapshe"
-- "ozgina" → "picha"
-- "yo'q" → "yo'g'ee"
-- "u yoq", "u yer", joymanosida ba'zan → "ashaq", "mashaq", misol uchun "o'sha yerdan bu yerga" → "ashaqdan mashaqa"
-- "rahmat" →  ma'noga qarab hurmat ifodasi o'rnida "joniz sog' bo'lsin"  ba'zan ko'pincha shunchaki "rahmat"
-- "ho'p" → ma'noaga qarab rozilik ifodasi o'rnida "davay" ba'zan shunchaki "bo'ldi"
-- "ko'p" → "ancha" 
-- "nadi" so'zi umuman bo'lmasin uni "yapti" ga almashtir
- 
-LEKSIKA VA IBORALAR:
-- akam, opajon, ukam, brat — murojaatlar
-- bopti — bo'ldi, mayli
-- vay-bo' — hayrat ifodasi
-- vapshe — rosa, ancha (rosa yaxshi — juda yaxshi)
-- joniz sog' bo'sin — rahmat, hurmat ifodasi
-- davay — ho'p, rozilik ifodasi
-- bo'ldida — ba'zan rozilik ifodasi
-- ancha — ko'p, ko'plik ifodasi
-- juda kop o'rniga "vapshe" kabi mahalliy kuchaytiruvchilar
- 
-NAMUNALAR:
-Adabiy: "Juda yaxshi ish qilibsan, rahmat."
-Andijoncha: "Voy-boo', vapshe yaxshi qipsan, rahmat sizga brat."
- 
-Adabiy: "Xo'p, keling, boramiz."
-Andijoncha: "Davay, bopti, yuring boreli opajon."
+  
+  UMUMIY XUSUSIYAT:
+  Farg'ona vodiysi qarluq lahjasiga kiradi. Nihoyatda muloyim, iliq va
+  hurmatga boy biroz qo'pol nutq uslubi bilan ajralib turadi.
+  
+  FONETIK/MORFOLOGIK QOIDALAR:
+  - "-gan" → "-gan/-kan" saqlanadi, lekin unlilar cho'ziladi (vodiyga xos) ba'zan ma'noga ta'sir qilmasa "yappan" misol uchun "qilyapman" -> "qilyappan"
+  -  "pman" → so'z agar "man" qo'shimchasidan olsin "p" harfi bo'lgan hamma so'zga "yappan" ishlatiladi. "Boryapman" -> "boryappan"
+  -  "yappan" -> so'z "moqdaman" qo'shimchasi bo'lsa "yappan"ga o'zgartir. "Bormoqdaman" -> "Boryappan"
+  -  "yapti" -> so'z "moqda" yoki "nadi" qo'shimchasi bo'lsa "yapti" ga o'zgartir. "Bormoqda" -> "Boryapti", "qilinadi" -> "qilinyapti:
+  -  "miman" -> so'z agar "man" qo'shimchasi oldida "y" harfi bo'lgan hamma so'zga "miman" ishlatiladi. "bormayman" -> "bormiman", "qilmayman" -> "qimiman", "yurmayman" -> "yurmiman".
+  - "sizmi" - agar "mi" qo'shimchasi oldidan "z" bo'lsa "z" harfi tushib qoladi "simi", "yuribsizmi" -> "yuribsimi", "qilyapsizmi" -> "qilyapsimi", "boryapsizmi" -> "boryapsimi"
+  -  "psiz" -> agar so'zda asosiy qo'chimcha oldidan "lib" so'zi bo'lsa "p" ga o'zgaradi qolgan qo'shimchalar o'z o'rnida bo'ladi. "kelibsiz"-> "kepsiz", "berilibsiz" -> "beripsiz", "sinrilibsiz" -> "sindiripsiz"
+  - "bo'pti" — "bo'ldi", "mayli"  o'rnida doim bo'ldi o'rnida "bo'pti" ishlatilsin
+  - kichraytirish-erkalash qo'shimchasi "-jon" deyarli har so'zga qo'shiladi
+  - "ha" o'rniga "ha-da" tasdiq sifatida ishlatiladi
+  - "aka" o'rnida ba'zan "brat"
+  - "juda" → "vapshe"
+  - "ozgina" → "picha"
+  - "yo'q" → "yo'g'ee"
+  - "u yoq", "u yer", joymanosida ba'zan → "ashaq", "mashaq", misol uchun "o'sha yerdan bu yerga" → "ashaqdan mashaqa"
+  - "rahmat" →  ma'noga qarab hurmat ifodasi o'rnida "joniz sog' bo'lsin"  ba'zan ko'pincha shunchaki "rahmat"
+  - "ho'p" → ma'noaga qarab rozilik ifodasi o'rnida "davay" ba'zan shunchaki "bo'ldi"
+  - "ko'p" → "ancha" 
+  
+  LEKSIKA VA IBORALAR:
+  - aka, opajon, uka, brat — murojaatlar
+  - bopti — bo'ldi, mayli
+  - vay-bo' — hayrat ifodasi
+  - vapshe — rosa, ancha (rosa yaxshi — juda yaxshi)
+  - joniz sog' bo'sin — rahmat, hurmat ifodasi
+  - davay — ho'p, rozilik ifodasi
+  - bo'ldida — ba'zan rozilik ifodasi
+  - ancha — ko'p, ko'plik ifodasi
+  - juda kop o'rniga "vapshe" kabi mahalliy kuchaytiruvchilar
+  
+  NAMUNALAR:
+  Adabiy: "Juda yaxshi ish qilibsan, rahmat."
+  Andijoncha: "Voy-boo', vapshe yaxshi qipsan, rahmat sizga brat."
+  
+  Adabiy: "Xo'p, keling, boramiz."
+  Andijoncha: "Davay, bopti, yuring boreli opajon."
 
-so'zlar ba'zan qisqarada ma'noni yo'qotmasdan
-Adabiy: "bo'ldi", "kelibdi", "qilibsan"
-Andijoncha: "bo'pti", "kepti", "qipsan"
+  so'zlar ba'zan qisqarada ma'noni yo'qotmasdan
+  Adabiy: "bo'ldi", "kelibdi", "qilibsan"
+  Andijoncha: "bo'pti", "kepti", "qipsan"
 
-Adabiy: "ko'pdan beri", "ko'p", "ko'p qildim"
-Andijoncha: "anchadan beri", "ancha", "ancha qildim"
-
-Adabiy: "hisoblanadi", "yig'ilmoqda", "borilmoqda", "qilinadi", "qilinmoqda"
-Andijoncha: "hisoblanyapti", "yig'ilyapti", "borilyapti", "qilinyapti", "qilinyapti"
- 
-Nutq iliq, hurmatga to'la va shirinsuxan bo'lsin — go'yo suhbatdosh bilan
-mehr bilan gaplashayotgandek.`,
+  Adabiy: "ko'pdan beri", "ko'p", "ko'p qildim"
+  Andijoncha: "anchadan beri", "ancha", "ancha qildim"
+  
+  Nutq iliq, hurmatga to'la va shirinsuxan bo'lsin — go'yo suhbatdosh bilan
+  mehr bilan gaplashayotgandek.`,
 
     fargona:
       "Matnni Farg'ona viloyati shevasida yozing. Vodiy xalqiga xos yumshoq, muloyim va hurmatli ohangni saqlang. Tabiiy farg'onacha talaffuz va iboralardan foydalaning. Nutq ravon, samimiy va yoqimli eshitilsin. so'zlarda 'sen', 'men' so'zlari o'rniga 'man', 'san' ishlatilsin",
 
     namangan:
       `Matnni Namangan viloyati shevasida yozing.
+  
+  UMUMIY XUSUSIYAT:
+  Vodiyning shimoliy sheva vakili, o'ziga xos tez va ritmik talaffuzi bilan
+  ajralib turadi, ba'zan qipchoq lahjasi unsurlari ham uchraydi.
+  
+  FONETIK/MORFOLOGIK QOIDALAR:
+  - "-yapti" → "-oti"/"-vati": borayapti → borvati
+  - so'z oxiridagi unlilar ba'zan tushib qoladi tez nutqda
+  - "-mi" so'roq qo'shimchasi kuchli urg'u bilan aytiladi
+  
+  LEKSIKA VA IBORALAR:
+  - "ie", "a-e" — undovlar
+  - akaxon, ukaxon — Andijondagiga o'xshash, lekin "-xon" varianti bilan
+  - "netvotisan" — nima qilyapsan
+  - juda — "battar" so'zi kuchaytiruvchi sifatida ham ishlatiladi
+  
+  NAMUNALAR:
+  Adabiy: "Sen nima qilyapsan?"
+  Namangancha: "Sen netvotisan hozi?"
+  
+  Adabiy: "Juda charchadim bugun."
+  Namangancha: "Battar charchadim-a bugun."
+  
+  Matn samimiy, muloyim, lekin vodiyga xos tez va ohangdor ritmda bo'lsin.`,
+
+    samarqand: `Matnni Samarqand viloyati shevasida yozing.
  
 UMUMIY XUSUSIYAT:
-Vodiyning shimoliy sheva vakili, o'ziga xos tez va ritmik talaffuzi bilan
-ajralib turadi, ba'zan qipchoq lahjasi unsurlari ham uchraydi.
+Qarluq-tojik ta'siridagi shahar shevasi. Samarqand nutqiga xos qadimiy
+uslub va tojik tili ta'siri, ayniqsa fe'l shakllari va olmoshlarda
+kuchli seziladi.
  
 FONETIK/MORFOLOGIK QOIDALAR:
-- "-yapti" → "-oti"/"-vati": borayapti → borvati
-- so'z oxiridagi unlilar ba'zan tushib qoladi tez nutqda
-- "-mi" so'roq qo'shimchasi kuchli urg'u bilan aytiladi
+- "men" → "man", "meniki" → "maniki", "men ham" → "maniyam"
+- davomiy fe'l shakli tojikcha andozada: "boryapsizmi" → "boraftasiz"
+- "keldimi" so'rog'i o'rniga "kelganmi" tez-tez ishlatiladi
+- "-b qo'ydi" konstruksiyasi ko'p uchraydi
+- "-b" ravishdosh shakli tojikcha "rafta" andozasida ham qo'llanadi: "borib" → "rafta"
  
 LEKSIKA VA IBORALAR:
-- "ie", "a-e" — undovlar
-- akaxon, ukaxon — Andijondagiga o'xshash, lekin "-xon" varianti bilan
-- "netvotisan" — nima qilyapsan
-- juda — "battar" so'zi kuchaytiruvchi sifatida ham ishlatiladi
+- maniyam — men ham
+- kelganmi — keldimi
+- boraftasiz — boryapsizmi
+- rafta — borib
+- gap yo'q — muammo yo'q, rozilik
+- "-cha" kichraytiruvchi qo'shimcha ko'p ishlatiladi
  
 NAMUNALAR:
-Adabiy: "Sen nima qilyapsan?"
-Namangancha: "Sen netvotisan hozi?"
+Adabiy: "Men ham boraman, gap yo'q."
+Samarqandcha: "Maniyam boraman, gap yo'q-e."
  
-Adabiy: "Juda charchadim bugun."
-Namangancha: "Battar charchadim-a bugun."
+Adabiy: "Qayerga borayapsiz?"
+Samarqandcha: "Qayoqqa boraftasiz hoziroq?"
  
-Matn samimiy, muloyim, lekin vodiyga xos tez va ohangdor ritmda bo'lsin.`,
-
-    samarqand:
-      "Matnni Samarqand viloyati shevasida yozing. Samarqand nutqiga xos qadimiy uslub va tojik tili ta'siri sezilib tursin. 'Maniyam', 'kelganmi', 'boraftasiz', 'rafta', 'gap yo'q' kabi va boshqa tabiiy sheva elementlaridan o'rinli foydalaning. Nutq mayin va madaniyatli bo'lsin.",
-
-    buxoro:
-      "Matnni Buxoro viloyati shevasida yozing. Buxoroga xos qadimiy, nafis va fors-tojik ta'siri seziladigan xalqona uslubni saqlang. Misol uchun 'nima' -> 'chi gap'. So'zlashuv tabiiy, sokin, muloyim va o'ziga xos buxorona ohangda bo'lsin.",
+Adabiy: "U keldimi?"
+Samarqandcha: "U kelganmi?"
+ 
+Nutq mayin, madaniyatli, biroz qadimiy ohangda, shahar zodagonligi
+hissi bilan yozilsin.`,
+    buxoro: `Matnni Buxoro viloyati shevasida yozing.
+ 
+UMUMIY XUSUSIYAT:
+Samarqand shevasiga yaqin, ammo tojik-fors ta'siri yanada kuchliroq
+seziladigan qadimiy shahar shevasi. Sokin, nafis va bosiq ohang xos.
+ 
+FONETIK/MORFOLOGIK QOIDALAR:
+- unlilar tor va yumshoq talaffuz qilinadi (yozma matnda so'z tanlovi orqali aks ettiring)
+- "-man" tugallovchi qo'shimchasi ko'p qo'llanadi: ketaman, boraman
+- "nima" so'zi o'rniga "chi gap" iborasi ko'p ishlatiladi (ayniqsa savol-murojaatlarda)
+- fors-tojikcha so'zlar tabiiy aralashadi (kamdan-kam, ortiqcha emas)
+ 
+LEKSIKA VA IBORALAR:
+- "e" undovi — hayrat, ta'kid
+- "xo'b" — yaxshi, xo'p (tojikcha ta'sirda)
+- "jonim" — erkalash murojaati
+- "picha" — biroz, ozgina
+- "chi gap" — nima gap, nima bo'ldi
+ 
+NAMUNALAR:
+Adabiy: "Nima bo'ldi, tinchlikmi?"
+Buxorocha: "Chi gap, tinchlikmi jonim?"
+ 
+Adabiy: "Biroz kuting, hozir kelaman."
+Buxorocha: "Picha sabr qiling, hozir kelaman, jonim."
+ 
+Adabiy: "Yaxshi bo'ldi, rahmat."
+Buxorocha: "Xo'b bo'ldi-e, rahmat sizga."
+ 
+So'zlashuv tabiiy, sokin, muloyim va o'ziga xos buxorona nafosat bilan
+yozilsin — shoshilmasdan, bosiqlik bilan.`,
 
     xorazm:
-      "Matnni Xorazm viloyati shevasida yozing. O'g'uz lahjasining o'ziga xos talaffuzi va grammatik shakllaridan foydalaning. 'Galing', 'giding', 'na qilipsan', 'shul', 'kelipsan', 'yotibdi','na qilipsan' kabi va boshqa xorazmcha iboralar tabiiy qo'llansin. Nutq sof xorazmcha eshitilsin.",
+      `Matnni Xorazm viloyati shevasida yozing.
+ 
+UMUMIY XUSUSIYAT:
+O'g'uz lahjasi guruhiga kiradi (turkman-ozarbayjon tillariga yaqin
+xususiyatlar). O'zbek tilining boshqa shevalaridan eng ko'p farq
+qiluvchi sheva hisoblanadi.
+ 
+FONETIK/MORFOLOGIK QOIDALAR:
+- "kel-" → "gal-": keldi → galdi, kelyapti → galyapti, kelipsan(mi) → keldingmi
+- "bor-" → "bar-": bordi → bardi, boraman → baraman
+- so'z boshida q → g, k → g tendensiyasi kuchli
+- "-yotibdi" → "-ip(ti)": yotibdi → yotipti, o'tiribdi → o'tiripti
+- "keling" → "galing", "keting"/"boring" → "giding"
+- "sen" → "san", talaffuz cho'ziqroq
+- "shu" → "shul"
+- "nima qilyapsan" → "na qilipsan"
+ 
+LEKSIKA VA IBORALAR:
+- galing — keling
+- giding — keting/boring (kontekstga qarab)
+- na qilipsan — nima qilyapsan
+- shul — shu
+- kelipsan(mi) — keldingmi
+- yotipti — yotibdi
+ 
+NAMUNALAR:
+Adabiy: "Sen qayerga borayapsan?"
+Xorazmcha: "San qayoqqa baratirsan?"
+ 
+Adabiy: "U uyga keldi va o'tirdi."
+Xorazmcha: "U öyge galip, o'tiripti."
+ 
+Adabiy: "Nima qilyapsan hozir?"
+Xorazmcha: "Hozir na qilipsan?"
+ 
+Adabiy: "Keling, bu yerda o'tiring."
+Xorazmcha: "Galing, shul yerda giding-o'tiring."
+ 
+Nutq sof xorazmcha eshitilsin — bu qoidalarni matn davomida izchil
+qo'llang, faqat bir-ikki so'zga cheklanib qolmang.`,
 
     qashqadaryo:
-      "Matnni Qashqadaryo viloyati shevasida yozing. Qipchoq lahjasiga xos fe'l shakllari va talaffuzni saqlang. 'Atibdi', 'baratirmiz', 'kemasiz' kabi va boshqa tabiiy sheva birliklaridan o'rinli foydalaning. Nutq sodda, qat'iy va xalqona bo'lsin.",
-
-    surxondaryo:
-      "Matnni Surxondaryo viloyati shevasida yozing. Janubiy hududlarga xos tabiiy talaffuz, xalqona iboralar va o'ziga xos ohangni aks ettiring.  'nimala', 'qayoqqa' kabi va boshqa tabiiy sheva birliklaridan o'rinli foydalaning.Nutq samimiy, dadil va tabiiy surxondaryocha bo'lsin.",
-
+      `Matnni Qashqadaryo viloyati shevasida yozing.
+ 
+UMUMIY XUSUSIYAT:
+Qipchoq lahjasiga kiradi (qozoq-qoraqalpoq tillariga yaqin xususiyatlar
+bilan). Fe'l shakllari va talaffuzda o'ziga xos qattiqlik xos.
+ 
+FONETIK/MORFOLOGIK QOIDALAR:
+- "-yapti"/"-ibdi" → "-atir(di)": bormoqda → baratir, keladi → kelatir
+- "-gan edi" → "-atkan": borgan edi → baratkan
+- "aytibdi" → "atibdi"
+- "kelasizmi" → "kemasiz" (qisqargan so'roq shakli)
+- unlilar qipchoqcha qattiqroq talaffuz qilinadi (a, o aniq ajraladi)
+ 
+LEKSIKA VA IBORALAR:
+- atibdi — aytibdi
+- baratirmiz — boryapmiz
+- kemasiz — kelasizmi
+- "asti" — juda, kuchaytiruvchi
+ 
+NAMUNALAR:
+Adabiy: "Biz hozir borayapmiz."
+Qashqadaryocha: "Biz hozir baratirmiz."
+ 
+Adabiy: "U shunday deb aytibdi."
+Qashqadaryocha: "U shunaqa deb atibdi."
+ 
+Adabiy: "Siz ham kelasizmi?"
+Qashqadaryocha: "Siz ham kemasiz?"
+ 
+Nutq sodda, qat'iy, dadil va xalqona ohangda bo'lsin — qipchoqcha
+fe'l shakllarini izchil saqlang.`,
+    surxondaryo: `Matnni Surxondaryo viloyati shevasida yozing.
+ 
+UMUMIY XUSUSIYAT:
+Janubiy o'zbek shevalari guruhiga kiradi, qipchoq va qarluq unsurlari
+aralash holda uchraydi. Dadil, keskin va tabiiy talaffuz xos.
+ 
+FONETIK/MORFOLOGIK QOIDALAR:
+- "-yapti" → "-ati"/"-yati": qilyapti → qilati
+- "nima" → "nimala"
+- "qayerga" → "qayoqqa"
+- olmoshlarda "sen" → "san" izchil saqlanadi
+- so'z oxiridagi "-di" ba'zan qisqaradi tez nutqda: keldi → keli
+ 
+LEKSIKA VA IBORALAR:
+- nimala — nima
+- qayoqqa — qayerga
+- da — gap oxirida ta'kid uchun tez-tez qo'shiladi
+- xo'p-da — rozilik
+- "netti" — nima qildi
+ 
+NAMUNALAR:
+Adabiy: "Nima qildi u, aytsang-chi?"
+Surxondaryocha: "U netti o'zi, ayt-da!"
+ 
+Adabiy: "Qayerga ketyapsan?"
+Surxondaryocha: "Qayoqqa ketatisan?"
+ 
+Adabiy: "Bu nima o'zi?"
+Surxondaryocha: "Bu nimala o'zi?"
+ 
+Nutq samimiy, dadil, tabiiy va janubga xos keskinroq ohangda bo'lsin.`,
     jizzax:
-      "Matnni Jizzax viloyati shevasida yozing. Markaziy hududlarga xos xalqona talaffuz va qipchoq unsurlari uyg'unligini saqlang. Nutq sodda, ravon, samimiy va tabiiy jizzaxcha ohangda bo'lsin.",
+      `Matnni Jizzax viloyati shevasida yozing.
+ 
+UMUMIY XUSUSIYAT:
+Markaziy hudud shevasi — qipchoq va Toshkent-Sirdaryo shevalari
+o'rtasidagi o'tish zonasi. Sodda va sof xalqona talaffuz xos.
+ 
+FONETIK/MORFOLOGIK QOIDALAR:
+- "-yapti" → "-atti"/"-otti": ketyapti → ketatti
+- qipchoqcha "-atir" shakli qisman uchraydi, lekin Qashqadaryodagidek qat'iy emas
+- "men/sen" → "man/san" so'zlashuvda
+ 
+LEKSIKA VA IBORALAR:
+- akasi, ukasi — sodda murojaat shakllari
+- xo'p — rozilik, qisqa va sodda
+- "netatti" — nima qilyapti
+ 
+NAMUNALAR:
+Adabiy: "U nima qilyapti hozir?"
+Jizzaxcha: "U hozir netatti o'zi?"
+ 
+Adabiy: "Xo'p, boraylik unda."
+Jizzaxcha: "Xo'p-da, boraylik unda."
+ 
+Nutq sodda, ravon, samimiy va tabiiy jizzaxcha ohangda, ortiqcha
+bezaksiz yozilsin.`,
 
-    sirdaryo:
-      "Matnni Sirdaryo viloyati shevasida yozing. Toshkent va Jizzax shevalari orasidagi tabiiy o'tishlarni aks ettiring. Nutq sodda, xalqona, samimiy va kundalik so'zlashuv uslubida bo'lsin.",
-
-    navoiy:
-      "Matnni Navoiy viloyati shevasida yozing. Markaziy-g'arbiy hududlarga xos talaffuz, Buxoro va Samarqand shevalari ta'siri hamda cho'l hududlariga xos xalqona ohangni saqlang. Nutq ravon, tabiiy va samimiy bo'lsin."
+    sirdaryo: `Matnni Sirdaryo viloyati shevasida yozing.
+ 
+UMUMIY XUSUSIYAT:
+Toshkent va Jizzax shevalari orasidagi tabiiy o'tish zonasi. Sodda,
+kundalik so'zlashuv uslubi ustunlik qiladi, ortiqcha sheva belgilari
+kam, lekin xalqona ohang saqlanadi.
+ 
+FONETIK/MORFOLOGIK QOIDALAR:
+- "men/sen" → "man/san"
+- "-yapti" → "-otti"/"-votti" (Toshkentga yaqin variant)
+- so'zlashuvda tabiiy qisqarishlar uchraydi, lekin haddan tashqari emas
+ 
+LEKSIKA VA IBORALAR:
+- aka, uka — murojaatlar
+- xo'p bo'ladi — rozilik
+- "shunaqa-da" — tasdiq, ta'kid
+ 
+NAMUNALAR:
+Adabiy: "Bugun ishga bordim, charchadim."
+Sirdaryocha: "Bugun ishga bordim-da, aka, charchab kettim."
+ 
+Adabiy: "Xo'p, unda ertaga ko'rishamiz."
+Sirdaryocha: "Xo'p bo'ladi, ertaga ko'rishamiz unda."
+ 
+Nutq sodda, xalqona, samimiy va kundalik so'zlashuv uslubida, ortiqcha
+murakkab sheva shakllarisiz yozilsin.`,
+    navoiy: `Matnni Navoiy viloyati shevasida yozing.
+ 
+UMUMIY XUSUSIYAT:
+Markaziy-g'arbiy hudud shevasi — Buxoro va Samarqand shevalari ta'siri
+hamda cho'l hududlariga xos xalqona talaffuz uyg'unlashadi.
+ 
+FONETIK/MORFOLOGIK QOIDALAR:
+- "men" → "man"; Buxoro-Samarqand ta'sirida ba'zan "maniyam" shakli ham uchraydi
+- "-yapti" → "-vati"/"-otti" aralash holda, qat'iy bitta shakl yo'q
+- so'zlashuvda unlilar biroz tor talaffuz qilinadi (Buxoro ta'siri)
+ 
+LEKSIKA VA IBORALAR:
+- jonim, akajon — erkalash murojaatlari (Buxoro ta'sirida)
+- xo'p — rozilik
+- "picha" — biroz (Buxorodan o'zlashgan)
+ 
+NAMUNALAR:
+Adabiy: "Biroz kutib turing, hozir boraman."
+Navoiycha: "Picha kutib turing, hozir boraman jonim."
+ 
+Adabiy: "Sen ham kelasanmi?"
+Navoiycha: "San ham kelasanmi, a?"
+ 
+Nutq ravon, tabiiy va samimiy, Buxoro-Samarqand nafosati bilan cho'l
+hududlariga xos soddalik uyg'unlashgan holda yozilsin.`,
   };
 
   const instruction = dialectPrompts[dialect.toLowerCase()];
@@ -333,29 +555,29 @@ function getPromptForStyleAndDialect(text: string, style: string, dialect: strin
   let dialectInstruction = "in standard Uzbek language";
   const normDialect = dialect.toLowerCase();
   if (normDialect === "toshkent") {
-    dialectInstruction = "in Tashkent dialect of Uzbek language (using Tashkent accent, votti-botti tone, and melodic city cadence)";
+    dialectInstruction = "in the Tashkent urban dialect of Uzbek — brisk, confident city cadence; moderate-fast pace; warm conversational rising-falling intonation; friendly informal tone. Pronounce word endings with the characteristic Tashkent softening: '-yapti/-nadi' endings drift toward a drawn-out 'votti/yotti' sound (e.g. ketvotti, boshlanvotti), '-daman/-yapman' endings soften into 'vomman' (e.g. borvomman), and 'aka/uka' are pronounced as the rounded 'oka'; overall a fast, slightly clipped, melodic city rhythm";
   } else if (normDialect === "andijon") {
-    dialectInstruction = "in Andijon dialect of Uzbek language (highly polite, melodic, warm Fergana valley tone and accent)";
+    dialectInstruction = "in the Andijon dialect of the Fergana Valley — soft, rounded vowels; slow-to-moderate pace with gentle pauses; warm rising intonation on polite address forms; highly polite, affectionate, deferential tone. Pronounce verb endings with valley softening: '-yapman' endings round into 'yappan' (e.g. boryappan), negative '-mayman' endings soften into 'miman' (e.g. bormiman), and 'bo'ldi' is pronounced as the softened 'bo'pti'; frequent gentle diminutive '-jon' suffix on names and address terms adds warmth to the melodic line";
   } else if (normDialect === "fargona") {
-    dialectInstruction = "in Farg'ona dialect of Uzbek language (extremely soft, polite, classic Fergana valley tone and accent)";
+    dialectInstruction = "in the Farg'ona dialect of the Fergana Valley — extremely soft and unhurried articulation; slow pace with elongated, rounded vowels; smooth, gently undulating intonation without sharp pitch jumps; polite, courteous, warm tone. Pronoun forms 'men/sen' are pronounced as 'man/san'; word endings blend softly (e.g. borvati rather than a crisp borayapti); relaxed stress placement throughout, avoiding hard consonant emphasis";
   } else if (normDialect === "namangan") {
-    dialectInstruction = "in Namangan dialect of Uzbek language (with characteristic Namangan pitch shifts and melodic valley accent)";
+    dialectInstruction = "in the Namangan dialect of the Fergana Valley — distinctive quick pitch shifts within phrases; moderate-fast pace, livelier and more clipped rhythm than neighboring valley dialects; energetic rising intonation on emphasis words and question particles ('-mi' pronounced with strong stress); warm but brisker, more animated tone. Word-final vowels are often dropped in fast speech, and '-yapti' endings shift toward 'vati/oti' (e.g. borvati)";
   } else if (normDialect === "samarqand") {
-    dialectInstruction = "in Samarqand dialect of Uzbek language (with Samarqand city cadence, incorporating beautiful Tajik-influenced vowels)";
+    dialectInstruction = "in the Samarqand dialect — Tajik-Persian-influenced vowel rounding and softened consonants; moderate, measured pace; gently flowing, cultured intonation with subtle pitch dips at clause ends; refined, courteous, slightly formal urban tone. Distinctive Samarqand pronunciation markers: 'men ham' merges into 'maniyam', continuous-tense verb endings stretch into a Persian-influenced 'boraftasiz' pattern, and the past-participle sound softens toward 'rafta'; unhurried, cultured delivery throughout";
   } else if (normDialect === "buxoro") {
-    dialectInstruction = "in Buxoro dialect of Uzbek language (with Bukhara accent, soft pacing, and elegant classical intonation)";
+    dialectInstruction = "in the Buxoro dialect — Persian-influenced soft articulation, even more restrained and nasal-toned than Samarqand; slow, deliberate pace; calm, even intonation with minimal pitch variation; composed, elegant, classical tone. Distinctive Buxoro pronunciation markers: the greeting/question phrase 'chi gap' is used in place of 'nima gap' with a soft, drawn-out delivery, 'yaxshi/xo'p' rounds toward 'xo'b', and word-final '-man' endings are pronounced fully and evenly (ketaman, boraman) rather than clipped; unhurried, dignified delivery";
   } else if (normDialect === "xorazm") {
-    dialectInstruction = "in Xorazm dialect of Uzbek language (with distinct Khorezmian Oghuz accent, using native g-sounds and o-vowels)";
+    dialectInstruction = "in the Xorazm (Khorezmian) dialect — distinct Oghuz-type accent, the most phonetically different Uzbek dialect; back-vowel coloring and a systematic k→g, q→g softening at the start of key verb roots; staccato, clipped rhythm with short punchy syllables; unique earlier word stress; direct, grounded tone. Distinctive Xorazm pronunciation markers: 'kel-' is pronounced as 'gal-' (galdi, galyapti), 'bor-' is pronounced as 'bar-' (bardi, baraman), '-yotibdi' endings clip to '-ipti' (yotipti, o'tiripti), and 'keling' is pronounced 'galing'";
   } else if (normDialect === "qashqadaryo") {
-    dialectInstruction = "in Qashqadaryo dialect of Uzbek language (with direct, robust, and friendly southern Kipchak accent)";
+    dialectInstruction = "in the Qashqadaryo dialect — Kipchak-type accent with harder, clearer consonants; steady, moderate pace; firm, level intonation with little melodic rise; direct, plain-spoken, no-nonsense tone. Distinctive Qashqadaryo pronunciation markers: continuous/reported verb endings shift to a drawn-out '-atir' sound (baratirmiz instead of borayapmiz, atibdi instead of aytibdi), and the question form 'kelasizmi' contracts to the clipped 'kemasiz'; strong, even stress on verb endings throughout";
   } else if (normDialect === "surxondaryo") {
-    dialectInstruction = "in Surxondaryo dialect of Uzbek language (with Southern Surkhandarya robust, deep, melodic rural accent)";
+    dialectInstruction = "in the Surxondaryo dialect — deep, resonant chest voice quality; moderate-slow pace; robust, grounded intonation with confident downward phrase endings; warm but assertive rural southern tone. Distinctive Surxondaryo pronunciation markers: 'nima' is pronounced as the elongated 'nimala', 'qayerga' is pronounced as 'qayoqqa', and '-yapti' endings shorten toward '-ati/-yati'; strong, clear stress with a grounded, confident delivery";
   } else if (normDialect === "jizzax") {
-    dialectInstruction = "in Jizzax dialect of Uzbek language (with Jizzakh regional accent and cadence)";
+    dialectInstruction = "in the Jizzax dialect — transitional accent between Tashkent and steppe Kipchak speech; moderate pace, plain and unadorned rhythm; even, understated intonation without strong pitch swings; simple, sincere, matter-of-fact tone. Pronoun forms 'men/sen' pronounced as 'man/san'; '-yapti' endings shift mildly toward '-atti/-otti' (ketatti), without the harder Qashqadaryo-style '-atir' contraction";
   } else if (normDialect === "sirdaryo") {
-    dialectInstruction = "in Sirdaryo dialect of Uzbek language (with friendly, simple, conversational Syrdarya accent)";
+    dialectInstruction = "in the Sirdaryo dialect — transitional accent between Tashkent and Jizzax speech; moderate pace, close to conversational standard Uzbek; light, natural intonation with mild rural warmth; simple, friendly, everyday tone. '-yapti' endings soften mildly toward the Tashkent-adjacent 'otti/votti' without heavy contraction; overall plain, approachable delivery with minimal dialectal markers";
   } else if (normDialect === "navoiy") {
-    dialectInstruction = "in Navoiy dialect of Uzbek language (with Navoiy regional accent)";
+    dialectInstruction = "in the Navoiy dialect — blend of Buxoro-Samarqand softness with plainer steppe-region articulation; moderate pace; gently flowing intonation, less formal than Buxoro but softer than Jizzax; warm, unpretentious tone. Occasional Samarqand-style 'maniyam' (men ham) merging and Buxoro-influenced 'picha' (biroz) pronunciation appear naturally; overall soft, unhurried delivery without strong regional sharpness";
   }
 
   return `${styleInstruction} ${dialectInstruction}: ${text}`;

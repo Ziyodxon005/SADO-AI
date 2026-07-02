@@ -1481,7 +1481,7 @@ export default function App() {
                 <span style={{ fontSize: isMobile ? 18 : 22 }}>{activeVoice?.sticker}</span>
                 <div>
                   <p style={{ fontSize: isMobile ? 11 : 12, fontWeight: 700, color: activeVoice?.color }}>{activeVoice?.name} — {activeVoice?.gender} ovozi</p>
-                  {!isMobile && <p style={{ fontSize: 11, color: C.TEXT2, marginTop: 2 }}>{activeVoice?.desc}</p>}
+                  <p style={{ fontSize: 11, color: C.TEXT2, marginTop: 2 }}>{activeVoice?.desc}</p>
                 </div>
               </div>
             </div>
@@ -1545,7 +1545,7 @@ export default function App() {
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 16 }}>⚙️</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: C.TEXT1 }}>Nutq Uslubi va Tezligi</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: C.TEXT1 }}>Nutq Uslubi</span>
               </div>
 
               <div>

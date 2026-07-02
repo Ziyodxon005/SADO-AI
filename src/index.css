@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
 /* ─── Base Reset ─────────────────────────────────────────────────── */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -11,7 +13,8 @@ html {
   text-size-adjust: 100%;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   min-height: 100%;
@@ -33,7 +36,8 @@ body {
 }
 
 /* ─── Tap highlight fix for mobile ──────────────────────────────── */
-button, a {
+button,
+a {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   user-select: none;
@@ -42,50 +46,117 @@ button, a {
 
 /* ─── Keyframe Animations ────────────────────────────────────────── */
 @keyframes slideInRight {
-  from { transform: translateX(110%); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
+  from {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 @keyframes toastProgress {
-  from { width: 100%; }
-  to   { width: 0%;   }
+  from {
+    width: 100%;
+  }
+
+  to {
+    width: 0%;
+  }
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.93); }
-  to   { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.93);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes spinAnim {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulseDot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.5; transform: scale(0.85); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
 }
 
 @keyframes shimmerCTA {
-  0%       { transform: translateX(-100%); }
-  60%, 100% { transform: translateX(200%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  60%,
+  100% {
+    transform: translateX(200%);
+  }
 }
 
 /* ─── Utility Classes ───────────────────────────────────────────── */
-.fadeUp   { animation: fadeUp   0.3s ease-out both; }
-.scaleIn  { animation: scaleIn  0.22s cubic-bezier(0.34,1.56,0.64,1) both; }
-.spin     { animation: spinAnim 1s linear infinite; }
-.pulse-dot{ animation: pulseDot 2s ease-in-out infinite; }
+.fadeUp {
+  animation: fadeUp 0.3s ease-out both;
+}
+
+.scaleIn {
+  animation: scaleIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.spin {
+  animation: spinAnim 1s linear infinite;
+}
+
+.pulse-dot {
+  animation: pulseDot 2s ease-in-out infinite;
+}
 
 /* ─── Scrollbar (webkit) ─────────────────────────────────────────── */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #2e4060; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #00cbc2; }
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2e4060;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00cbc2;
+}
 
 /* ─── Range Slider ───────────────────────────────────────────────── */
 input[type="range"] {
@@ -95,11 +166,13 @@ input[type="range"] {
   width: 100%;
   cursor: pointer;
 }
+
 input[type="range"]::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 6px;
   background: #20304a;
 }
+
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -112,14 +185,17 @@ input[type="range"]::-webkit-slider-thumb {
   border: 2px solid #0e1520;
   transition: box-shadow 0.15s;
 }
+
 input[type="range"]::-webkit-slider-thumb:hover {
   box-shadow: 0 0 22px rgba(0, 203, 194, 0.7);
 }
+
 input[type="range"]::-moz-range-track {
   height: 6px;
   border-radius: 6px;
   background: #20304a;
 }
+
 input[type="range"]::-moz-range-thumb {
   width: 20px;
   height: 20px;
@@ -139,14 +215,17 @@ input[type="range"]::-moz-range-thumb {
   transition: all 0.2s;
   box-shadow: 0 8px 28px rgba(0, 203, 194, 0.35);
 }
+
 .btn-teal:hover {
   box-shadow: 0 12px 36px rgba(0, 203, 194, 0.5);
   transform: translateY(-2px);
 }
+
 .btn-teal:active {
   transform: scale(0.98);
   box-shadow: 0 4px 16px rgba(0, 203, 194, 0.3);
 }
+
 .btn-teal:disabled {
   background: #20304a !important;
   color: #7a90b0 !important;
@@ -155,18 +234,55 @@ input[type="range"]::-moz-range-thumb {
   cursor: not-allowed;
 }
 
-.voice-card  { cursor: pointer; transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1); border: none; }
-.voice-card:hover  { transform: translateY(-4px); }
-.voice-card:active { transform: scale(0.96); }
+.voice-card {
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: none;
+}
 
-.dialect-chip  { cursor: pointer; transition: all 0.15s; border: none; }
-.dialect-chip:hover  { transform: translateY(-1px); }
-.dialect-chip:active { transform: scale(0.97); }
+.voice-card:hover {
+  transform: translateY(-4px);
+}
 
-.emo-btn  { cursor: pointer; transition: all 0.15s; }
-.emo-btn:hover  { transform: translateY(-1px); }
-.emo-btn:active { transform: scale(0.96); }
+.voice-card:active {
+  transform: scale(0.96);
+}
 
-.ai-float-btn { transition: all 0.18s; }
-.ai-float-btn:hover  { transform: translateY(-1px); }
-.ai-float-btn:active { transform: scale(0.96); }
+.dialect-chip {
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+}
+
+.dialect-chip:hover {
+  transform: translateY(-1px);
+}
+
+.dialect-chip:active {
+  transform: scale(0.97);
+}
+
+.emo-btn {
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.emo-btn:hover {
+  transform: translateY(-1px);
+}
+
+.emo-btn:active {
+  transform: scale(0.96);
+}
+
+.ai-float-btn {
+  transition: all 0.18s;
+}
+
+.ai-float-btn:hover {
+  transform: translateY(-1px);
+}
+
+.ai-float-btn:active {
+  transform: scale(0.96);
+}

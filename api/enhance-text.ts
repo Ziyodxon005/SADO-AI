@@ -110,8 +110,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "Matn kiritish majburiy." });
     }
 
-    if (text.length > 1200) {
-      return res.status(400).json({ error: "Matn uzunligi 1200 belgidan oshmasligi kerak." });
+    if (text.length > 500) {
+      return res.status(400).json({ error: "Matn uzunligi 500 belgidan oshmasligi kerak." });
     }
 
     if (!hasAvailableClients()) {
