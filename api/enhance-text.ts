@@ -54,7 +54,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const systemInstruction =
       "Siz O'zbek tili bo'yicha mukammal imlo va grammatika mutaxassisiz. " +
       "Sizga taqdim etilgan o'zbekcha matnni tekshiring, imlo xatolarini to'g'rilang, tinish belgilarini joyiga qo'ying va grammatik qo'shimchalarni muvofiqlashtiring. " +
-      "FAQAT tuzatilgan va mukammallashtirilgan o'zbekcha matnni qaytaring. Hech qanday qo'shimcha tushuntirish yozmang.";
+      "Ayniqsa 'o' va 'g' harflari uchun to'g'ri o'zbekcha tutuq belgilarini (misol uchun: o' va g' yoki oʻ va gʻ) to'g'ri formatsiyada qo'llang. " +
+      "FAQAT tuzatilgan va mukammallashtirilgan o'zbekcha matnni qaytaring. Hech qanday qo'shimcha tushuntirish, izoh, so'zboshi yoki gap yozmang. Faqat va faqat yakuniy matn bo'lsin.";
 
     const enhancedText = await callWithKeyRotation(async (client) => {
       const response = await client.models.generateContent({
