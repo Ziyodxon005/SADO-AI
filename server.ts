@@ -217,7 +217,7 @@ async function translateToDialect(
   Andijoncha: "anchadan beri", "ancha", "ancha qildim"
   
   Nutq iliq, hurmatga to'la va shirinsuxan bo'lsin — go'yo suhbatdosh bilan
-  mehr bilan gaplashayotgandek.`,
+  mehr bilan gaplashayotgandek."jon" qo'shimchasini keraksiz joyda ishlatma!`,
 
     fargona:
       "Matnni Farg'ona viloyati shevasida yozing. Vodiy xalqiga xos yumshoq, muloyim va hurmatli ohangni saqlang. Tabiiy farg'onacha talaffuz va iboralardan foydalaning. Nutq ravon, samimiy va yoqimli eshitilsin. so'zlarda 'sen', 'men' so'zlari o'rniga 'man', 'san' ishlatilsin",
@@ -558,7 +558,7 @@ function getPromptForStyleAndDialect(text: string, style: string, dialect: strin
   if (normDialect === "toshkent") {
     dialectInstruction = "in the Tashkent urban dialect of Uzbek — brisk, confident city cadence; moderate-fast pace; warm conversational rising-falling intonation; friendly informal tone. Pronounce word endings with the characteristic Tashkent softening: '-yapti/-nadi' endings drift toward a drawn-out 'votti/yotti' sound (e.g. ketvotti, boshlanvotti), '-daman/-yapman' endings soften into 'vomman' (e.g. borvomman), and 'aka/uka' are pronounced as the rounded 'oka'; overall a fast, slightly clipped, melodic city rhythm";
   } else if (normDialect === "andijon") {
-    dialectInstruction = "in the Andijon dialect of the Fergana Valley — soft, rounded vowels; slow-to-moderate pace with gentle pauses; warm rising intonation on polite address forms; highly polite, affectionate, deferential tone. Pronounce verb endings with valley softening: '-yapman' endings round into 'yappan' (e.g. boryappan), negative '-mayman' endings soften into 'miman' (e.g. bormiman), and 'bo'ldi' is pronounced as the softened 'bo'pti'; frequent gentle diminutive '-jon' suffix on names and address terms adds warmth to the melodic line";
+    dialectInstruction = "in the Andijon dialect of the Fergana Valley — soft, rounded vowels; slow-to-moderate pace with gentle pauses; warm rising intonation on polite address forms; highly polite, affectionate, deferential tone. Pronounce verb endings with valley softening: '-yapman' endings round into 'yappan' (e.g. boryappan), negative '-mayman' endings soften into 'miman' (e.g. bormiman), and 'bo'ldi' is pronounced as the softened 'bo'pti'; in a gentle tone frequently found in names and terms of address!";
   } else if (normDialect === "fargona") {
     dialectInstruction = "in the Farg'ona dialect of the Fergana Valley — extremely soft and unhurried articulation; slow pace with elongated, rounded vowels; smooth, gently undulating intonation without sharp pitch jumps; polite, courteous, warm tone. Pronoun forms 'men/sen' are pronounced as 'man/san'; word endings blend softly (e.g. borvati rather than a crisp borayapti); relaxed stress placement throughout, avoiding hard consonant emphasis";
   } else if (normDialect === "namangan") {
@@ -599,8 +599,8 @@ export function createApp() {
         return res.status(400).json({ error: "Matn kiritish majburiy." });
       }
 
-      if (text.length > 1200) {
-        return res.status(400).json({ error: "Matn uzunligi 1200 belgidan oshmasligi kerak." });
+      if (text.length > 500) {
+        return res.status(400).json({ error: "Matn uzunligi 500 belgidan oshmasligi kerak." });
       }
 
       if (!hasAvailableClients()) {
@@ -704,8 +704,8 @@ export function createApp() {
         return res.status(400).json({ error: "Matn kiritish majburiy." });
       }
 
-      if (text.length > 1200) {
-        return res.status(400).json({ error: "Matn uzunligi 1200 belgidan oshmasligi kerak." });
+      if (text.length > 500) {
+        return res.status(400).json({ error: "Matn uzunligi 500 belgidan oshmasligi kerak." });
       }
 
       if (!hasAvailableClients()) {
