@@ -208,7 +208,7 @@ async function translateToDialect(
     `ASL MATN: "${text}"\n` +
     `KO'RSATMA: Asl matnning ma'nosini 100% saqlang, hech qanday qo'shimcha so'z, tushuntirish, izoh yozmang! Faqat va faqat shevadagi tarjimani qaytaring.`;
 
-  const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite"];
+  const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite"];
 
   for (const modelName of modelsToTry) {
     try {
@@ -227,7 +227,8 @@ async function translateToDialect(
       }
     } catch (err: any) {
       if (isQuotaError(err)) throw err;
-      console.warn(`Translation failed for model ${modelName}:`, err);
+      // PERMISSION_DENIED va boshqa xatolarni e'tiborsiz qoldirib keyingi modelga o'tish
+      console.warn(`Translation failed for model ${modelName}:`, err?.message || err);
     }
   }
 
