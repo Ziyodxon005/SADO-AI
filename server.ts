@@ -749,6 +749,179 @@ export function createApp() {
     }
   });
 
+  // ─── API Route: MCP Server (Model Context Protocol) ───────────────────────
+  // JSON-RPC 2.0 asosidagi MCP endpoint — Claude, Cursor, VS Code uchun.
+
+  const MCP_SERVER_INFO = { name: "sado-ai", version: "1.0.0" };
+  const MCP_PROTOCOL_VERSION = "2025-03-26";
+
+  const MCP_TOOLS = [
+    {
+      name: "uzbek_tts",
+      description:
+        "O'zbek tilidagi matnni tabiiy ovozga aylantiradi (Text-to-Speech). " +
+        "5 xil ovoz (Shaxnoza, Nigora — ayol; Umar, Mustafo, Ali — erkak) va " +
+        "12+ viloyat shevalari mavjud. Natija base64 kodlangan WAV audio.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          text: { type: "string", description: "O'zbekcha matn (max 500 belgi)", minLength: 1, maxLength: 500 },
+          voiceName: { type: "string", enum: ["Shaxnoza", "Nigora", "Umar", "Mustafo", "Ali"], default: "Shaxnoza", description: "Ovoz nomi" },
+          style: { type: "string", enum: ["natural", "news", "cheerful", "sad", "angry", "whisper", "storytelling"], default: "natural", description: "Ovoz uslubi" },
+          dialect: { type: "string", enum: ["standard", "toshkent", "andijon", "fargona", "namangan", "samarqand", "buxoro", "xorazm", "qashqadaryo", "surxondaryo", "jizzax", "sirdaryo", "navoiy"], default: "standard", description: "Viloyat shevasi" },
+          speed: { type: "number", minimum: 0.5, maximum: 2.0, default: 1.0, description: "Ovoz tezligi (0.5-2.0)" },
+        },
+        required: ["text"],
+      },
+    },
+    {
+      name: "uzbek_spell_check",
+      description:
+        "O'zbek tilidagi matnni imlo va grammatika jihatdan tekshiradi va to'g'rilaydi. " +
+        "Gemini AI asosida ishlaydi.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          text: { type: "string", description: "O'zbekcha matn (max 500 belgi)", minLength: 1, maxLength: 500 },
+        },
+        required: ["text"],
+      },
+    },
+  ];
+
+  // MCP: GET — server holati
+  app.get("/api/mcp", (req, res) => {
+    res.json({
+      name: MCP_SERVER_INFO.name,
+      version: MCP_SERVER_INFO.version,
+      protocolVersion: MCP_PROTOCOL_VERSION,
+      description: "SADO AI — O'zbek tili uchun matn-to-ovoz (TTS) va imlo tahrirlash MCP serveri",
+      tools: MCP_TOOLS.map((t) => ({ name: t.name, description: t.description })),
+    });
+  });
+
+  // MCP: DELETE — sessiya tugatish (stateless)
+  app.delete("/api/mcp", (_req, res) => res.status(200).end());
+
+  // MCP: POST — JSON-RPC xabarlarni qayta ishlash
+  app.post("/api/mcp", async (req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+
+    const body = req.body;
+    if (!body) return res.status(400).json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Empty request body" } });
+
+    const baseUrl = `http://localhost:${PORT}`;
+    const isBatch = Array.isArray(body);
+    const messages = isBatch ? body : [body];
+    const responses: any[] = [];
+
+    for (const msg of messages) {
+      if (!msg || msg.jsonrpc !== "2.0") {
+        if (msg?.id != null) responses.push({ jsonrpc: "2.0", id: msg.id, error: { code: -32600, message: "Invalid JSON-RPC 2.0 request" } });
+        continue;
+      }
+
+      const { id, method, params } = msg;
+
+      // Notification — javob kerak emas
+      if (id === undefined || id === null) continue;
+
+      switch (method) {
+        case "initialize":
+          responses.push({ jsonrpc: "2.0", id, result: { protocolVersion: MCP_PROTOCOL_VERSION, capabilities: { tools: { listChanged: false } }, serverInfo: MCP_SERVER_INFO } });
+          break;
+
+        case "tools/list":
+          responses.push({ jsonrpc: "2.0", id, result: { tools: MCP_TOOLS } });
+          break;
+
+        case "tools/call": {
+          const toolName = params?.name;
+          const toolArgs = params?.arguments || {};
+
+          if (!toolName) {
+            responses.push({ jsonrpc: "2.0", id, error: { code: -32602, message: "Tool name is required" } });
+            break;
+          }
+
+          try {
+            let toolResult: any;
+
+            if (toolName === "uzbek_tts") {
+              const fetchRes = await fetch(`${baseUrl}/api/tts`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  text: toolArgs.text,
+                  voiceName: toolArgs.voiceName || "Shaxnoza",
+                  style: toolArgs.style || "natural",
+                  dialect: toolArgs.dialect || "standard",
+                  speed: toolArgs.speed || 1.0,
+                }),
+              });
+              const data = await fetchRes.json() as any;
+              if (!fetchRes.ok || !data.success) {
+                toolResult = { content: [{ type: "text", text: `❌ ${data.error || "TTS xatolik"}` }], isError: true };
+              } else {
+                const content: any[] = [];
+                content.push({ type: "resource", resource: { uri: `data:audio/wav;base64,${data.audioBase64}`, mimeType: "audio/wav", blob: data.audioBase64 } });
+                let meta = `✅ Ovoz yaratildi!\n📝 Matn: ${toolArgs.text}\n🎤 Ovoz: ${toolArgs.voiceName || "Shaxnoza"}\n🎭 Uslub: ${toolArgs.style || "natural"}\n🌍 Sheva: ${toolArgs.dialect || "standard"}`;
+                if (data.metadata?.translatedText && data.metadata.translatedText !== toolArgs.text) {
+                  meta += `\n🗣️ Sheva matni: ${data.metadata.translatedText}`;
+                }
+                meta += `\n📊 Hajm: ~${Math.round((data.audioBase64.length * 3) / 4 / 1024)} KB`;
+                content.push({ type: "text", text: meta });
+                toolResult = { content };
+              }
+            } else if (toolName === "uzbek_spell_check") {
+              const fetchRes = await fetch(`${baseUrl}/api/enhance-text`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: toolArgs.text }),
+              });
+              const data = await fetchRes.json() as any;
+              if (!fetchRes.ok || !data.success) {
+                toolResult = { content: [{ type: "text", text: `❌ ${data.error || "Imlo xatolik"}` }], isError: true };
+              } else {
+                let txt = `✅ Imlo tahrirlash muvaffaqiyatli!\n\n📝 Asl matn:\n${toolArgs.text}\n\n✏️ To'g'rilangan matn:\n${data.enhancedText}`;
+                if (toolArgs.text?.trim() === data.enhancedText?.trim()) {
+                  txt += `\n\nℹ️ Matn allaqachon to'g'ri.`;
+                }
+                toolResult = { content: [{ type: "text", text: txt }] };
+              }
+            } else {
+              toolResult = { content: [{ type: "text", text: `❌ Noma'lum tool: "${toolName}"` }], isError: true };
+            }
+
+            responses.push({ jsonrpc: "2.0", id, result: toolResult });
+          } catch (error: any) {
+            responses.push({ jsonrpc: "2.0", id, error: { code: -32000, message: error.message || "Tool execution failed" } });
+          }
+          break;
+        }
+
+        case "ping":
+          responses.push({ jsonrpc: "2.0", id, result: {} });
+          break;
+
+        case "resources/list":
+          responses.push({ jsonrpc: "2.0", id, result: { resources: [] } });
+          break;
+
+        case "prompts/list":
+          responses.push({ jsonrpc: "2.0", id, result: { prompts: [] } });
+          break;
+
+        default:
+          responses.push({ jsonrpc: "2.0", id, error: { code: -32601, message: `Method not found: ${method}` } });
+      }
+    }
+
+    if (responses.length === 0) return res.status(202).end();
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json(isBatch ? responses : responses[0]);
+  });
+
   // ─── Serve static assets or mount Vite middleware ─────────────────────────
   // (faqat lokal dev uchun — Vercel da bu kerak emas)
   return app;

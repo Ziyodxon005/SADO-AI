@@ -5,6 +5,7 @@
   "installCommand": "npm install",
   "functions": {
     "api/tts.ts": { "maxDuration": 60 },
-    "api/enhance-text.ts": { "maxDuration": 30 }
+    "api/enhance-text.ts": { "maxDuration": 30 },
+    "api/mcp.ts": { "maxDuration": 60 }
   }
 }
