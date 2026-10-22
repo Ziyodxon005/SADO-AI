@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { GoogleGenAI } from "@google/genai";
+import { put } from "@vercel/blob";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SADO AI — MCP Server (Model Context Protocol)
@@ -23,18 +24,64 @@ const SERVER_INFO = {
 
 const PROTOCOL_VERSION = "2025-03-26";
 
-// ─── Audio Cache (MCP ichida, bir xil warm instance uchun) ────────────────────
-// Vercel serverless'da bir xil funksiya instance qayta ishlatilishi mumkin.
-// Audio'ni shu instance xotirasida vaqtincha saqlaymiz.
+// ─── WAV Header + Audio Storage ─────────────────────────────────────────────
 
+/**
+ * Raw PCM ma'lumotga WAV header qo'shish.
+ * Gemini TTS API ko'pincha raw PCM (Linear16) qaytaradi — bu header
+ * qo'shilmasa media playerlar audio'ni o'qiy olmaydi.
+ */
+function addWavHeaders(
+  pcmData: Buffer,
+  sampleRate = 24000,
+  channels = 1,
+  bitsPerSample = 16
+): Buffer {
+  const dataSize = pcmData.length;
+  const header = Buffer.alloc(44);
+
+  header.write("RIFF", 0);                                    // ChunkID
+  header.writeUInt32LE(36 + dataSize, 4);                      // ChunkSize
+  header.write("WAVE", 8);                                    // Format
+  header.write("fmt ", 12);                                   // Subchunk1ID
+  header.writeUInt32LE(16, 16);                                // Subchunk1Size (PCM)
+  header.writeUInt16LE(1, 20);                                 // AudioFormat (1 = PCM)
+  header.writeUInt16LE(channels, 22);                          // NumChannels
+  header.writeUInt32LE(sampleRate, 24);                        // SampleRate
+  header.writeUInt32LE(sampleRate * channels * bitsPerSample / 8, 28); // ByteRate
+  header.writeUInt16LE(channels * bitsPerSample / 8, 32);      // BlockAlign
+  header.writeUInt16LE(bitsPerSample, 34);                     // BitsPerSample
+  header.write("data", 36);                                   // Subchunk2ID
+  header.writeUInt32LE(dataSize, 40);                          // Subchunk2Size
+
+  return Buffer.concat([header, pcmData]);
+}
+
+/**
+ * Audio ma'lumotni WAV formatga o'tkazish.
+ * Agar allaqachon WAV headerga ega bo'lsa, o'zgartirmaydi.
+ */
+function ensureWavFormat(rawData: Buffer): Buffer {
+  // RIFF header bormi tekshirish
+  if (rawData.length >= 4 && rawData.toString("ascii", 0, 4) === "RIFF") {
+    return rawData; // Allaqachon WAV
+  }
+  return addWavHeaders(rawData);
+}
+
+/**
+ * Audio faylni Vercel Blob'ga yuklash.
+ * BLOB_READ_WRITE_TOKEN mavjud bo'lsa Blob ishlatiladi,
+ * aks holda in-memory fallback.
+ */
+
+// In-memory fallback cache
 interface AudioCacheEntry {
   data: Buffer;
   createdAt: number;
 }
-
 const audioCache = new Map<string, AudioCacheEntry>();
-const AUDIO_TTL = 10 * 60 * 1000; // 10 daqiqa
-const AUDIO_MAX = 50;
+const AUDIO_TTL = 15 * 60 * 1000; // 15 daqiqa
 
 function cleanupAudio(): void {
   const now = Date.now();
@@ -43,18 +90,36 @@ function cleanupAudio(): void {
   }
 }
 
-function storeAudioInCache(base64Data: string): string {
+async function storeAudioAndGetUrl(
+  base64Data: string,
+  baseUrl: string
+): Promise<string> {
+  const rawBuffer = Buffer.from(base64Data, "base64");
+  const wavBuffer = ensureWavFormat(rawBuffer);
+
+  // Vercel Blob mavjudmi tekshirish
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      const filename = `sado-ai-${Date.now()}.wav`;
+      const blob = await put(filename, wavBuffer, {
+        access: "public",
+        contentType: "audio/wav",
+      });
+      return blob.url;
+    } catch (err: any) {
+      console.warn("[Blob] Xatolik, fallback to memory:", err?.message);
+    }
+  }
+
+  // Fallback: in-memory cache
   cleanupAudio();
-  if (audioCache.size >= AUDIO_MAX) {
+  if (audioCache.size >= 50) {
     const oldest = audioCache.keys().next().value;
     if (oldest) audioCache.delete(oldest);
   }
   const id = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
-  audioCache.set(id, {
-    data: Buffer.from(base64Data, "base64"),
-    createdAt: Date.now(),
-  });
-  return id;
+  audioCache.set(id, { data: wavBuffer, createdAt: Date.now() });
+  return `${baseUrl}/api/mcp?download=${id}`;
 }
 
 // ─── Multi-Key Pool (MCP ichida mustaqil) ─────────────────────────────────────
@@ -506,9 +571,8 @@ async function executeUzbekTts(
     // Audio natijasini shakllantirish
     const sizeKB = Math.round((base64Audio.length * 3) / 4 / 1024);
 
-    // Audio'ni MCP funksiya ichidagi cache'ga saqlash
-    const audioId = storeAudioInCache(base64Audio);
-    const downloadUrl = `${baseUrl}/api/mcp?download=${audioId}`;
+    // Audio'ni saqlash va download URL olish (Blob yoki fallback)
+    const downloadUrl = await storeAudioAndGetUrl(base64Audio, baseUrl);
 
     const content: any[] = [];
 
@@ -524,8 +588,7 @@ async function executeUzbekTts(
     metaText += `⚡ Tezlik: ${speed}x\n`;
     metaText += `\n📦 Audio format: WAV (24kHz, 16-bit, mono)\n`;
     metaText += `📊 Audio hajmi: ~${sizeKB} KB\n`;
-    metaText += `\n🔗 Yuklab olish havolasi:\n${downloadUrl}\n`;
-    metaText += `\n⏳ Bu havola 10 daqiqa davomida amal qiladi.`;
+    metaText += `\n🔗 Yuklab olish havolasi:\n${downloadUrl}`;
     content.push({ type: "text", text: metaText });
 
     return { content };
