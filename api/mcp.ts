@@ -23,6 +23,40 @@ const SERVER_INFO = {
 
 const PROTOCOL_VERSION = "2025-03-26";
 
+// ─── Audio Cache (MCP ichida, bir xil warm instance uchun) ────────────────────
+// Vercel serverless'da bir xil funksiya instance qayta ishlatilishi mumkin.
+// Audio'ni shu instance xotirasida vaqtincha saqlaymiz.
+
+interface AudioCacheEntry {
+  data: Buffer;
+  createdAt: number;
+}
+
+const audioCache = new Map<string, AudioCacheEntry>();
+const AUDIO_TTL = 10 * 60 * 1000; // 10 daqiqa
+const AUDIO_MAX = 50;
+
+function cleanupAudio(): void {
+  const now = Date.now();
+  for (const [id, entry] of audioCache.entries()) {
+    if (now - entry.createdAt > AUDIO_TTL) audioCache.delete(id);
+  }
+}
+
+function storeAudioInCache(base64Data: string): string {
+  cleanupAudio();
+  if (audioCache.size >= AUDIO_MAX) {
+    const oldest = audioCache.keys().next().value;
+    if (oldest) audioCache.delete(oldest);
+  }
+  const id = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+  audioCache.set(id, {
+    data: Buffer.from(base64Data, "base64"),
+    createdAt: Date.now(),
+  });
+  return id;
+}
+
 // ─── Multi-Key Pool (MCP ichida mustaqil) ─────────────────────────────────────
 
 const rawKeys = [
@@ -471,19 +505,14 @@ async function executeUzbekTts(
 
     // Audio natijasini shakllantirish
     const sizeKB = Math.round((base64Audio.length * 3) / 4 / 1024);
+
+    // Audio'ni MCP funksiya ichidagi cache'ga saqlash
+    const audioId = storeAudioInCache(base64Audio);
+    const downloadUrl = `${baseUrl}/api/mcp?download=${audioId}`;
+
     const content: any[] = [];
 
-    // Audio'ni embedded resource sifatida qaytarish
-    content.push({
-      type: "resource",
-      resource: {
-        uri: `data:audio/wav;base64,${base64Audio}`,
-        mimeType: "audio/wav",
-        blob: base64Audio,
-      },
-    });
-
-    // Metadata matnini yaratish
+    // Metadata va download link matnini yaratish
     let metaText = `✅ Ovoz muvaffaqiyatli yaratildi!\n\n`;
     metaText += `📝 Asl matn: ${text}\n`;
     if (result.translatedText && result.translatedText !== text) {
@@ -494,7 +523,9 @@ async function executeUzbekTts(
     metaText += `🌍 Sheva: ${dialect}\n`;
     metaText += `⚡ Tezlik: ${speed}x\n`;
     metaText += `\n📦 Audio format: WAV (24kHz, 16-bit, mono)\n`;
-    metaText += `📊 Audio hajmi: ~${sizeKB} KB`;
+    metaText += `📊 Audio hajmi: ~${sizeKB} KB\n`;
+    metaText += `\n🔗 Yuklab olish havolasi:\n${downloadUrl}\n`;
+    metaText += `\n⏳ Bu havola 10 daqiqa davomida amal qiladi.`;
     content.push({ type: "text", text: metaText });
 
     return { content };
@@ -671,6 +702,27 @@ export default async function handler(
   }
 
   if (req.method === "GET") {
+    // Audio yuklab olish so'rovi
+    const downloadId = req.query.download as string;
+    if (downloadId) {
+      cleanupAudio();
+      const entry = audioCache.get(downloadId);
+      if (!entry) {
+        return res.status(404).json({
+          error: "Audio topilmadi yoki muddati tugagan. Qayta yarating.",
+        });
+      }
+      res.setHeader("Content-Type", "audio/wav");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="sado-ai-${downloadId}.wav"`
+      );
+      res.setHeader("Content-Length", entry.data.length.toString());
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(200).send(entry.data);
+    }
+
+    // MCP server info
     return res.status(200).json({
       name: SERVER_INFO.name,
       version: SERVER_INFO.version,
