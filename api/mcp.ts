@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { GoogleGenAI } from "@google/genai";
-import { storeAudio } from "./audio";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SADO AI — MCP Server (Model Context Protocol)
@@ -469,18 +468,21 @@ async function executeUzbekTts(
       };
     }
 
-    // Audio'ni serverda vaqtincha saqlash
-    const audioId = storeAudio(base64Audio, {
-      text,
-      voiceName,
-      dialect,
-      style,
+    // Audio natijasini shakllantirish
+    const sizeKB = Math.round((base64Audio.length * 3) / 4 / 1024);
+    const content: any[] = [];
+
+    // Audio'ni embedded resource sifatida qaytarish
+    content.push({
+      type: "resource",
+      resource: {
+        uri: `data:audio/wav;base64,${base64Audio}`,
+        mimeType: "audio/wav",
+        blob: base64Audio,
+      },
     });
 
-    const downloadUrl = `${baseUrl}/api/audio?id=${audioId}`;
-    const sizeKB = Math.round((base64Audio.length * 3) / 4 / 1024);
-
-    // Natija matnini yaratish
+    // Metadata matnini yaratish
     let metaText = `✅ Ovoz muvaffaqiyatli yaratildi!\n\n`;
     metaText += `📝 Asl matn: ${text}\n`;
     if (result.translatedText && result.translatedText !== text) {
@@ -491,11 +493,10 @@ async function executeUzbekTts(
     metaText += `🌍 Sheva: ${dialect}\n`;
     metaText += `⚡ Tezlik: ${speed}x\n`;
     metaText += `\n📦 Audio format: WAV (24kHz, 16-bit, mono)\n`;
-    metaText += `📊 Audio hajmi: ~${sizeKB} KB\n`;
-    metaText += `\n🔗 **Yuklab olish havolasi:**\n${downloadUrl}\n`;
-    metaText += `\n⏳ Bu havola 10 daqiqa davomida amal qiladi.`;
+    metaText += `📊 Audio hajmi: ~${sizeKB} KB`;
+    content.push({ type: "text", text: metaText });
 
-    return { content: [{ type: "text", text: metaText }] };
+    return { content };
   } catch (error: any) {
     if (error.message === "ALL_KEYS_EXHAUSTED") {
       return {
