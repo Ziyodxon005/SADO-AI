@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { storeAudio } from "./audio";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SADO AI — MCP Server (Model Context Protocol)
@@ -165,6 +166,7 @@ function jsonRpcError(
 
 /**
  * O'zbek TTS — Matnni ovozga aylantirish
+ * Audio faylni serverda vaqtincha saqlaydi va yuklab olish URL'ini qaytaradi.
  */
 async function executeUzbekTts(
   args: Record<string, any>,
@@ -240,21 +242,21 @@ async function executeUzbekTts(
       };
     }
 
-    // Natijani shakllantirish
-    const content: any[] = [];
-
-    // Audio ni embedded resource sifatida qaytarish
-    content.push({
-      type: "resource",
-      resource: {
-        uri: `data:audio/wav;base64,${data.audioBase64}`,
-        mimeType: "audio/wav",
-        blob: data.audioBase64,
-      },
+    // Audio'ni serverda vaqtincha saqlash va yuklab olish URL olish
+    const audioId = storeAudio(data.audioBase64, {
+      text: text,
+      voiceName: voiceName,
+      dialect: dialect,
+      style: style,
     });
 
-    // Metadata matnini yaratish
+    const downloadUrl = `${baseUrl}/api/audio?id=${audioId}`;
+
+    // Natijani shakllantirish
+    const content: any[] = [];
     const meta = data.metadata;
+
+    // Metadata va yuklab olish URL matnini yaratish
     let metaText = `✅ Ovoz muvaffaqiyatli yaratildi!\n\n`;
     metaText += `📝 Asl matn: ${meta?.text || text}\n`;
     if (meta?.translatedText && meta.translatedText !== meta.text) {
@@ -265,7 +267,9 @@ async function executeUzbekTts(
     metaText += `🌍 Sheva: ${meta?.dialect || dialect}\n`;
     metaText += `⚡ Tezlik: ${meta?.speed ?? speed}x\n`;
     metaText += `\n📦 Audio format: WAV (24kHz, 16-bit, mono)\n`;
-    metaText += `📊 Audio hajmi: ~${Math.round((data.audioBase64.length * 3) / 4 / 1024)} KB`;
+    metaText += `📊 Audio hajmi: ~${Math.round((data.audioBase64.length * 3) / 4 / 1024)} KB\n`;
+    metaText += `\n🔗 **Yuklab olish havolasi:**\n${downloadUrl}\n`;
+    metaText += `\n⏳ Bu havola 10 daqiqa davomida amal qiladi.`;
 
     content.push({ type: "text", text: metaText });
 

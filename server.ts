@@ -8,6 +8,39 @@ dotenv.config();
 
 const PORT = 3000;
 
+// ─── Vaqtincha Audio Cache (MCP uchun) ────────────────────────────────────────
+interface AudioCacheEntry {
+  data: Buffer;
+  createdAt: number;
+  metadata?: { text?: string; voiceName?: string; dialect?: string; style?: string };
+}
+
+const audioCache = new Map<string, AudioCacheEntry>();
+const AUDIO_CACHE_TTL = 10 * 60 * 1000; // 10 daqiqa
+const AUDIO_CACHE_MAX = 100;
+
+function cleanupAudioCache(): void {
+  const now = Date.now();
+  for (const [id, entry] of audioCache.entries()) {
+    if (now - entry.createdAt > AUDIO_CACHE_TTL) audioCache.delete(id);
+  }
+}
+
+function generateAudioId(): string {
+  return Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 10);
+}
+
+function storeAudioLocally(base64Data: string, metadata?: AudioCacheEntry['metadata']): string {
+  cleanupAudioCache();
+  if (audioCache.size >= AUDIO_CACHE_MAX) {
+    const oldest = audioCache.keys().next().value;
+    if (oldest) audioCache.delete(oldest);
+  }
+  const id = generateAudioId();
+  audioCache.set(id, { data: Buffer.from(base64Data, 'base64'), createdAt: Date.now(), metadata });
+  return id;
+}
+
 // ─── Multi-Key Pool ───────────────────────────────────────────────────────────
 // GEMINI_API_KEY_1 ... GEMINI_API_KEY_8 kalitlarini qo'llab-quvvatlaydi.
 // Eski GEMINI_API_KEY ham ishlaydi (backward compatibility).
@@ -590,6 +623,24 @@ export function createApp() {
 
   app.use(express.json({ limit: "10mb" }));
 
+  // ─── API Route: Audio Download (MCP uchun) ──────────────────────────────
+  app.get("/api/audio", (req: any, res: any) => {
+    const id = req.query.id as string;
+    if (!id) return res.status(400).json({ error: "Audio ID kerak." });
+
+    cleanupAudioCache();
+    const entry = audioCache.get(id);
+    if (!entry) {
+      return res.status(404).json({ error: "Audio topilmadi yoki muddati tugagan (10 daqiqa)." });
+    }
+
+    res.setHeader("Content-Type", "audio/wav");
+    res.setHeader("Content-Disposition", `attachment; filename="sado-ai-audio-${id}.wav"`);
+    res.setHeader("Content-Length", entry.data.length.toString());
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).send(entry.data);
+  });
+
   // ─── API Route: Speech Synthesis ─────────────────────────────────────────
   app.post("/api/tts", async (req: any, res: any) => {
     try {
@@ -863,13 +914,23 @@ export function createApp() {
               if (!fetchRes.ok || !data.success) {
                 toolResult = { content: [{ type: "text", text: `❌ ${data.error || "TTS xatolik"}` }], isError: true };
               } else {
+                // Audio'ni serverda saqlash va yuklab olish URL yaratish
+                const audioId = storeAudioLocally(data.audioBase64, {
+                  text: toolArgs.text,
+                  voiceName: toolArgs.voiceName || "Shaxnoza",
+                  dialect: toolArgs.dialect || "standard",
+                  style: toolArgs.style || "natural",
+                });
+                const downloadUrl = `${baseUrl}/api/audio?id=${audioId}`;
+
                 const content: any[] = [];
-                content.push({ type: "resource", resource: { uri: `data:audio/wav;base64,${data.audioBase64}`, mimeType: "audio/wav", blob: data.audioBase64 } });
                 let meta = `✅ Ovoz yaratildi!\n📝 Matn: ${toolArgs.text}\n🎤 Ovoz: ${toolArgs.voiceName || "Shaxnoza"}\n🎭 Uslub: ${toolArgs.style || "natural"}\n🌍 Sheva: ${toolArgs.dialect || "standard"}`;
                 if (data.metadata?.translatedText && data.metadata.translatedText !== toolArgs.text) {
                   meta += `\n🗣️ Sheva matni: ${data.metadata.translatedText}`;
                 }
                 meta += `\n📊 Hajm: ~${Math.round((data.audioBase64.length * 3) / 4 / 1024)} KB`;
+                meta += `\n\n🔗 **Yuklab olish havolasi:**\n${downloadUrl}`;
+                meta += `\n\n⏳ Bu havola 10 daqiqa davomida amal qiladi.`;
                 content.push({ type: "text", text: meta });
                 toolResult = { content };
               }
